@@ -32,7 +32,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
         </div>
         <div class="standings-table" id="driverStandings">
           <!-- Skeleton -->
-          {Array.from({length: 5}).map((_, i) => (
+          {Array.from({length: 5}).map(_ => (
             <div class="standings-row skeleton-row">
               <div class="skeleton skeleton-pos"></div>
               <div class="skeleton skeleton-name"></div>
@@ -49,7 +49,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
           <a href="/f1/teams" class="section-link">Full standings →</a>
         </div>
         <div class="standings-table" id="constructorStandings">
-          {Array.from({length: 5}).map((_, i) => (
+          {Array.from({length: 5}).map(_ => (
             <div class="standings-row skeleton-row">
               <div class="skeleton skeleton-pos"></div>
               <div class="skeleton skeleton-name"></div>
@@ -61,14 +61,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
     </div>
 
-    <!-- Recent Results -->
+    <!-- Season Calendar -->
     <section class="recent-results-section">
       <div class="hub-section-header">
-        <p class="section-label">Latest Results</p>
+        <p class="section-label">Season Calendar</p>
         <a href="/f1/results" class="section-link">All results →</a>
       </div>
       <div id="recentResults">
-        {Array.from({length: 3}).map(() => (
+        {Array.from({length: 6}).map(() => (
           <div class="result-card skeleton-card">
             <div class="skeleton skeleton-race-name"></div>
             <div class="skeleton skeleton-race-sub"></div>
@@ -82,6 +82,32 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
+  const COUNTRY_FLAGS: Record<string, string> = {
+    'Australia':            '🇦🇺',
+    'Austria':              '🇦🇹',
+    'Azerbaijan':           '🇦🇿',
+    'Bahrain':              '🇧🇭',
+    'Belgium':              '🇧🇪',
+    'Brazil':               '🇧🇷',
+    'Canada':               '🇨🇦',
+    'China':                '🇨🇳',
+    'France':               '🇫🇷',
+    'Hungary':              '🇭🇺',
+    'Italy':                '🇮🇹',
+    'Japan':                '🇯🇵',
+    'Mexico':               '🇲🇽',
+    'Monaco':               '🇲🇨',
+    'Netherlands':          '🇳🇱',
+    'Qatar':                '🇶🇦',
+    'Saudi Arabia':         '🇸🇦',
+    'Singapore':            '🇸🇬',
+    'Spain':                '🇪🇸',
+    'United Arab Emirates': '🇦🇪',
+    'United Kingdom':       '🇬🇧',
+    'USA':                  '🇺🇸',
+    'United States':        '🇺🇸',
+  };
+
   async function loadData() {
     const BASE = 'https://api.jolpi.ca/ergast/f1';
 
@@ -130,35 +156,63 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       constructorEl.innerHTML = '<p class="no-data">Could not load standings</p>';
     }
 
-    // Recent results
+    // Season calendar + results
     const resultsEl = document.getElementById('recentResults');
-    if (resultsEl && resultsRes.status === 'fulfilled' && resultsRes.value.ok) {
-      const data = await resultsRes.value.json();
-      const races = data.MRData?.RaceTable?.Races ?? [];
-      if (races.length === 0) {
-        resultsEl.innerHTML = '<p class="no-data">Season not started yet</p>';
+    const [scheduleRes, resultsData] = await Promise.allSettled([
+      fetch(`${BASE}/current.json`).then(r => r.json()),
+      resultsRes.status === 'fulfilled' && resultsRes.value.ok
+        ? resultsRes.value.json()
+        : Promise.resolve(null),
+    ]);
+
+    if (resultsEl) {
+      const schedule = (scheduleRes.status === 'fulfilled'
+        ? scheduleRes.value?.MRData?.RaceTable?.Races
+        : null) ?? [];
+      const resultsMap = new Map<string, any>();
+      const resultRaces = (resultsData.status === 'fulfilled' && resultsData.value)
+        ? resultsData.value?.MRData?.RaceTable?.Races ?? []
+        : [];
+      for (const r of resultRaces) resultsMap.set(r.round, r.Results?.[0]);
+
+      if (schedule.length === 0) {
+        resultsEl.innerHTML = '<p class="no-data">Schedule not available</p>';
       } else {
-        resultsEl.innerHTML = races.slice(-3).reverse().map((race: any) => {
-          const winner = race.Results?.[0];
+        const now = Date.now();
+        let nextFound = false;
+        resultsEl.innerHTML = schedule.map((race: any) => {
+          const raceDate = new Date(race.date);
+          const isPast = raceDate.getTime() < now;
+          const isNext = !isPast && !nextFound;
+          if (isNext) nextFound = true;
+          const winner = resultsMap.get(race.round);
+          const dateStr = raceDate.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+          const flag = COUNTRY_FLAGS[race.Circuit.Location.country] ?? '';
+          const cardClass = isPast ? ' is-past' : isNext ? ' is-next' : '';
+          const bottomHtml = winner
+            ? `<div class="rc-winner">
+                <span class="rc-winner-label">Winner</span>
+                <span class="rc-winner-name">${winner.Driver.familyName}</span>
+                <span class="rc-winner-team">${winner.Constructor.name}</span>
+              </div>`
+            : isNext
+              ? `<div class="rc-next-badge">Next Race</div>`
+              : '';
+          const tag = isPast ? `a href="/f1/results?round=${race.round}"` : 'div';
+          const closeTag = isPast ? 'a' : 'div';
           return `
-            <div class="result-card">
-              <div class="result-card-header">
-                <span class="result-round">Round ${race.round}</span>
-                <span class="result-date">${new Date(race.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+            <${tag} class="result-card${cardClass}">
+              <div class="rc-meta">
+                <span class="rc-round">R${race.round}</span>
+                <span class="rc-date">${dateStr}</span>
               </div>
-              <h3 class="result-race-name">${race.raceName}</h3>
-              <p class="result-circuit">${race.Circuit.Location.locality}, ${race.Circuit.Location.country}</p>
-              ${winner ? `<div class="result-winner">
-                <span class="result-winner-label">Winner</span>
-                <span class="result-winner-name">${winner.Driver.givenName} ${winner.Driver.familyName}</span>
-                <span class="result-winner-team">${winner.Constructor.name}</span>
-              </div>` : ''}
-            </div>
+              <h3 class="rc-name">${flag ? flag + ' ' : ''}${race.raceName.replace('Grand Prix', 'GP')}</h3>
+              <p class="rc-location">${race.Circuit.Location.locality} · ${race.Circuit.Location.country}</p>
+              ${bottomHtml}
+            </${closeTag}>
           `;
         }).join('');
       }
-    } else if (resultsEl) {
-      resultsEl.innerHTML = '<p class="no-data">Could not load results</p>';
     }
   }
 
@@ -294,87 +348,114 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .skeleton-name { flex: 1; height: 1.4rem; }
   .skeleton-pts  { width: 3.5rem; height: 1.4rem; }
 
-  /* Recent results */
+  /* Season calendar */
   .recent-results-section { margin-top: 1rem; }
 
   #recentResults {
     display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 0.75rem;
   }
 
-  .result-card {
+  :global(.result-card) {
     background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    padding: 1.25rem;
+    padding: 1.1rem 1.25rem;
+    display: flex;
+    flex-direction: column;
+    min-height: 130px;
+  }
+
+  :global(a.result-card) { text-decoration: none; color: inherit; }
+  :global(a.result-card:hover) { border-color: var(--color-muted); opacity: 0.75; }
+  :global(.result-card.is-past) { opacity: 0.5; }
+
+  :global(.result-card.is-next) {
+    background: color-mix(in srgb, var(--color-accent) 6%, var(--color-surface));
+    outline: 1px solid var(--color-accent);
+    outline-offset: -1px;
+    opacity: 1;
   }
 
   .skeleton-card { height: 130px; }
-  .skeleton-race-name { height: 1.2rem; margin-bottom: 0.5rem; }
-  .skeleton-race-sub  { height: 0.85rem; width: 60%; }
+  .skeleton-race-name { height: 1.1rem; margin-bottom: 0.5rem; }
+  .skeleton-race-sub  { height: 0.8rem; width: 60%; }
 
-  .result-card-header {
+  :global(.rc-meta) {
     display: flex;
     justify-content: space-between;
-    margin-bottom: 0.5rem;
+    align-items: center;
+    margin-bottom: 0.6rem;
   }
 
-  .result-round {
+  :global(.rc-round) {
     font-family: var(--font-display);
-    font-size: 0.7rem;
+    font-size: 0.68rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-accent);
   }
 
-  .result-date {
-    font-size: 0.72rem;
+  :global(.rc-date) {
+    font-size: 0.7rem;
     color: var(--color-muted);
   }
 
-  .result-race-name {
+  :global(.rc-name) {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 1rem;
+    font-size: 0.88rem;
     text-transform: uppercase;
-    line-height: 1.2;
-    margin-bottom: 0.25rem;
+    line-height: 1.25;
+    margin-bottom: 0.2rem;
   }
 
-  .result-circuit {
-    font-size: 0.78rem;
+  :global(.rc-location) {
+    font-size: 0.74rem;
     color: var(--color-muted);
-    margin-bottom: 0.875rem;
+    flex: 1;
   }
 
-  .result-winner {
+  :global(.rc-winner) {
     display: flex;
     flex-direction: column;
     gap: 0.1rem;
-    padding-top: 0.75rem;
+    padding-top: 0.65rem;
     border-top: 1px solid var(--color-border);
+    margin-top: 0.65rem;
   }
 
-  .result-winner-label {
+  :global(.rc-winner-label) {
     font-family: var(--font-display);
-    font-size: 0.65rem;
+    font-size: 0.6rem;
     font-weight: 700;
     letter-spacing: 0.1em;
     text-transform: uppercase;
     color: var(--color-muted);
   }
 
-  .result-winner-name {
+  :global(.rc-winner-name) {
     font-family: var(--font-display);
-    font-size: 0.9rem;
+    font-size: 0.85rem;
     font-weight: 700;
     text-transform: uppercase;
   }
 
-  .result-winner-team {
-    font-size: 0.75rem;
+  :global(.rc-winner-team) {
+    font-size: 0.7rem;
     color: var(--color-muted);
+  }
+
+  :global(.rc-next-badge) {
+    margin-top: 0.65rem;
+    padding-top: 0.65rem;
+    border-top: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
   }
 
   .no-data {
@@ -383,8 +464,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     padding: 1rem;
   }
 
+  @media (max-width: 1024px) {
+    #recentResults { grid-template-columns: repeat(3, 1fr); }
+  }
+
   @media (max-width: 768px) {
     .hub-grid { grid-template-columns: 1fr; }
-    #recentResults { grid-template-columns: 1fr; }
+    #recentResults { grid-template-columns: repeat(2, 1fr); }
   }
 </style>

@@ -81,9 +81,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       </button>
     `).join('');
 
-    // Auto-select the most recent race
-    const lastRace = allRaces[allRaces.length - 1];
-    selectRace(lastRace.round);
+    // Auto-select from query param, or fall back to most recent race
+    const params = new URLSearchParams(window.location.search);
+    const roundParam = params.get('round');
+    const target = roundParam ? allRaces.find(r => r.round === roundParam) : null;
+    selectRace((target ?? allRaces[allRaces.length - 1]).round);
   }
 
   (window as any).selectRace = function(round: string) {
