@@ -4,17 +4,11 @@ import { Icon } from 'astro-icon/components';
 
 const links = [
   {
-    label: 'Articles',
-    sublabel: 'F1 write-ups & analysis',
-    href: '/articles',
-    icon: 'simple-icons:rss',
-    internal: true,
-  },
-  {
-    label: 'F1 Data',
-    sublabel: 'Standings, results & more',
-    href: '/f1',
-    icon: 'simple-icons:f1',
+    label: 'Website',
+    sublabel: 'turn1visuals.com',
+    href: '/',
+    icon: '',
+    imgSrc: '/logo/icon_white.svg',
     internal: true,
   },
   {
@@ -93,7 +87,10 @@ const links = [
           {...(!link.internal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
         >
           <span class="link-icon-wrap">
-            <Icon name={link.icon} class="link-icon" />
+            {(link as any).imgSrc
+              ? <img src={(link as any).imgSrc} class="link-icon" alt="" />
+              : <Icon name={link.icon} class="link-icon" />
+            }
           </span>
           <span class="link-text">
             <span class="link-label">
@@ -170,14 +167,14 @@ const links = [
     padding: 0.9rem 1.1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
+    border-left: 3px solid var(--color-accent);
     color: var(--color-text);
     text-decoration: none;
     transition: border-color 0.15s, background 0.15s;
   }
 
   .link-item:hover {
-    border-color: var(--color-accent);
-    background: #1f1f1f;
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
   }
 
   .link-icon-wrap {
@@ -186,14 +183,14 @@ const links = [
     justify-content: center;
     width: 2rem;
     height: 2rem;
-    background: var(--color-border);
+    background: var(--color-accent);
     flex-shrink: 0;
   }
 
   .link-icon {
     width: 1rem;
     height: 1rem;
-    color: var(--color-text);
+    color: #fff;
   }
 
   .link-text {
@@ -219,13 +216,12 @@ const links = [
 
   .link-arrow {
     font-size: 1rem;
-    color: var(--color-muted);
+    color: var(--color-accent);
     flex-shrink: 0;
-    transition: color 0.15s, transform 0.15s;
+    transition: transform 0.15s;
   }
 
   .link-item:hover .link-arrow {
-    color: var(--color-accent);
     transform: translateX(3px);
   }
 
