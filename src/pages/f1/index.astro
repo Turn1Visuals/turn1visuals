@@ -1,0 +1,390 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="F1 Data" description="Live F1 driver standings, constructor standings, and race results from Turn1Visuals.">
+
+  <div class="page-header">
+    <div class="container">
+      <p class="section-label">Formula 1</p>
+      <h1 class="page-title">F1 Data Hub</h1>
+      <p class="page-desc">Live standings and results — always up to date.</p>
+    </div>
+  </div>
+
+  <div class="container hub-body">
+
+    <!-- Sub-page nav -->
+    <nav class="sub-nav">
+      <a href="/f1" class="sub-nav-link sub-nav-link--active">Overview</a>
+      <a href="/f1/drivers" class="sub-nav-link">Drivers</a>
+      <a href="/f1/teams" class="sub-nav-link">Teams</a>
+      <a href="/f1/results" class="sub-nav-link">Results</a>
+    </nav>
+
+    <div class="hub-grid">
+
+      <!-- Driver Standings -->
+      <section class="hub-section">
+        <div class="hub-section-header">
+          <p class="section-label">Drivers</p>
+          <a href="/f1/drivers" class="section-link">Full standings →</a>
+        </div>
+        <div class="standings-table" id="driverStandings">
+          <!-- Skeleton -->
+          {Array.from({length: 5}).map((_, i) => (
+            <div class="standings-row skeleton-row">
+              <div class="skeleton skeleton-pos"></div>
+              <div class="skeleton skeleton-name"></div>
+              <div class="skeleton skeleton-pts"></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      <!-- Constructor Standings -->
+      <section class="hub-section">
+        <div class="hub-section-header">
+          <p class="section-label">Constructors</p>
+          <a href="/f1/teams" class="section-link">Full standings →</a>
+        </div>
+        <div class="standings-table" id="constructorStandings">
+          {Array.from({length: 5}).map((_, i) => (
+            <div class="standings-row skeleton-row">
+              <div class="skeleton skeleton-pos"></div>
+              <div class="skeleton skeleton-name"></div>
+              <div class="skeleton skeleton-pts"></div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+    </div>
+
+    <!-- Recent Results -->
+    <section class="recent-results-section">
+      <div class="hub-section-header">
+        <p class="section-label">Latest Results</p>
+        <a href="/f1/results" class="section-link">All results →</a>
+      </div>
+      <div id="recentResults">
+        {Array.from({length: 3}).map(() => (
+          <div class="result-card skeleton-card">
+            <div class="skeleton skeleton-race-name"></div>
+            <div class="skeleton skeleton-race-sub"></div>
+          </div>
+        ))}
+      </div>
+    </section>
+
+  </div>
+
+</BaseLayout>
+
+<script>
+  async function loadData() {
+    const BASE = 'https://api.jolpi.ca/ergast/f1';
+
+    // Fetch all in parallel
+    const [driversRes, constructorsRes, resultsRes] = await Promise.allSettled([
+      fetch(`${BASE}/current/driverStandings.json?limit=5`),
+      fetch(`${BASE}/current/constructorStandings.json?limit=5`),
+      fetch(`${BASE}/current/results.json?limit=3`),
+    ]);
+
+    // Driver standings
+    const driverEl = document.getElementById('driverStandings');
+    if (driverEl && driversRes.status === 'fulfilled' && driversRes.value.ok) {
+      const data = await driversRes.value.json();
+      const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
+      driverEl.innerHTML = standings.slice(0, 5).map((s: any) => `
+        <div class="standings-row">
+          <span class="pos">${s.position}</span>
+          <div class="driver-info">
+            <span class="driver-name">${s.Driver.givenName} ${s.Driver.familyName}</span>
+            <span class="driver-team">${s.Constructors[0]?.name ?? ''}</span>
+          </div>
+          <span class="points">${s.points} <span class="pts-label">pts</span></span>
+        </div>
+      `).join('') || '<p class="no-data">No data available</p>';
+    } else if (driverEl) {
+      driverEl.innerHTML = '<p class="no-data">Could not load standings</p>';
+    }
+
+    // Constructor standings
+    const constructorEl = document.getElementById('constructorStandings');
+    if (constructorEl && constructorsRes.status === 'fulfilled' && constructorsRes.value.ok) {
+      const data = await constructorsRes.value.json();
+      const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? [];
+      constructorEl.innerHTML = standings.slice(0, 5).map((s: any) => `
+        <div class="standings-row">
+          <span class="pos">${s.position}</span>
+          <div class="driver-info">
+            <span class="driver-name">${s.Constructor.name}</span>
+            <span class="driver-team">${s.Constructor.nationality}</span>
+          </div>
+          <span class="points">${s.points} <span class="pts-label">pts</span></span>
+        </div>
+      `).join('') || '<p class="no-data">No data available</p>';
+    } else if (constructorEl) {
+      constructorEl.innerHTML = '<p class="no-data">Could not load standings</p>';
+    }
+
+    // Recent results
+    const resultsEl = document.getElementById('recentResults');
+    if (resultsEl && resultsRes.status === 'fulfilled' && resultsRes.value.ok) {
+      const data = await resultsRes.value.json();
+      const races = data.MRData?.RaceTable?.Races ?? [];
+      if (races.length === 0) {
+        resultsEl.innerHTML = '<p class="no-data">Season not started yet</p>';
+      } else {
+        resultsEl.innerHTML = races.slice(-3).reverse().map((race: any) => {
+          const winner = race.Results?.[0];
+          return `
+            <div class="result-card">
+              <div class="result-card-header">
+                <span class="result-round">Round ${race.round}</span>
+                <span class="result-date">${new Date(race.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+              <h3 class="result-race-name">${race.raceName}</h3>
+              <p class="result-circuit">${race.Circuit.Location.locality}, ${race.Circuit.Location.country}</p>
+              ${winner ? `<div class="result-winner">
+                <span class="result-winner-label">Winner</span>
+                <span class="result-winner-name">${winner.Driver.givenName} ${winner.Driver.familyName}</span>
+                <span class="result-winner-team">${winner.Constructor.name}</span>
+              </div>` : ''}
+            </div>
+          `;
+        }).join('');
+      }
+    } else if (resultsEl) {
+      resultsEl.innerHTML = '<p class="no-data">Could not load results</p>';
+    }
+  }
+
+  loadData();
+</script>
+
+<style>
+  .page-header {
+    padding-block: 4rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 0.5rem;
+  }
+
+  .page-desc { color: var(--color-muted); font-size: 0.95rem; margin-top: 0.5rem; }
+
+  .hub-body { padding-block: 2.5rem 5rem; }
+
+  /* Sub-nav */
+  .sub-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 3rem;
+  }
+
+  .sub-nav-link {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .sub-nav-link:hover { color: var(--color-text); }
+  .sub-nav-link--active { color: var(--color-text); border-bottom-color: var(--color-accent); }
+
+  /* Hub grid */
+  .hub-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-bottom: 3rem;
+  }
+
+  .hub-section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1rem;
+  }
+
+  .section-link {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    transition: color 0.15s;
+  }
+
+  .section-link:hover { color: var(--color-text); }
+
+  /* Standings rows */
+  .standings-table { display: flex; flex-direction: column; gap: 2px; }
+
+  .standings-row {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .pos {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    min-width: 1.5rem;
+    text-align: center;
+  }
+
+  .driver-info { flex: 1; }
+
+  .driver-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.95rem;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+  }
+
+  .driver-team {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    display: block;
+  }
+
+  .points {
+    font-family: 'Inter', monospace;
+    font-size: 1rem;
+    font-weight: 600;
+    color: var(--color-text);
+    text-align: right;
+  }
+
+  .pts-label {
+    font-size: 0.65rem;
+    font-weight: 400;
+    color: var(--color-muted);
+    margin-left: 2px;
+  }
+
+  /* Skeleton */
+  .skeleton-row { gap: 1rem; padding: 0.75rem 1rem; background: var(--color-surface); border: 1px solid var(--color-border); display: flex; align-items: center; }
+  .skeleton-pos  { width: 1.5rem; height: 1.4rem; }
+  .skeleton-name { flex: 1; height: 1.4rem; }
+  .skeleton-pts  { width: 3.5rem; height: 1.4rem; }
+
+  /* Recent results */
+  .recent-results-section { margin-top: 1rem; }
+
+  #recentResults {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .result-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 1.25rem;
+  }
+
+  .skeleton-card { height: 130px; }
+  .skeleton-race-name { height: 1.2rem; margin-bottom: 0.5rem; }
+  .skeleton-race-sub  { height: 0.85rem; width: 60%; }
+
+  .result-card-header {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+  }
+
+  .result-round {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .result-date {
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+
+  .result-race-name {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    text-transform: uppercase;
+    line-height: 1.2;
+    margin-bottom: 0.25rem;
+  }
+
+  .result-circuit {
+    font-size: 0.78rem;
+    color: var(--color-muted);
+    margin-bottom: 0.875rem;
+  }
+
+  .result-winner {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    padding-top: 0.75rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .result-winner-label {
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .result-winner-name {
+    font-family: var(--font-display);
+    font-size: 0.9rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .result-winner-team {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  .no-data {
+    color: var(--color-muted);
+    font-size: 0.85rem;
+    padding: 1rem;
+  }
+
+  @media (max-width: 768px) {
+    .hub-grid { grid-template-columns: 1fr; }
+    #recentResults { grid-template-columns: 1fr; }
+  }
+</style>

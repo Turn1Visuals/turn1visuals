@@ -1,0 +1,422 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Icon } from 'astro-icon/components';
+import { getCollection } from 'astro:content';
+
+// Get featured or most recent visuals for the preview section
+const allVisuals = await getCollection('visuals');
+const recentVisuals = allVisuals
+  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
+  .slice(0, 6);
+
+const socials = [
+  { name: 'Twitter / X',  href: 'https://twitter.com/Turn1Visuals',    icon: 'simple-icons:x' },
+  { name: 'Instagram',    href: 'https://instagram.com/Turn1Visuals',   icon: 'simple-icons:instagram' },
+  { name: 'Facebook',     href: 'https://facebook.com/Turn1Visuals',    icon: 'simple-icons:facebook' },
+  { name: 'Threads',      href: 'https://threads.net/@Turn1Visuals',    icon: 'simple-icons:threads' },
+  { name: 'Mastodon',     href: 'https://mastodon.social/@Turn1Visuals', icon: 'simple-icons:mastodon' },
+  { name: 'Bluesky',      href: 'https://bsky.app/profile/Turn1Visuals', icon: 'simple-icons:bluesky' },
+  { name: 'Twitch',       href: 'https://twitch.tv/Turn1Visuals',       icon: 'simple-icons:twitch' },
+];
+---
+
+<BaseLayout title="Home">
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <p class="section-label hero-eyebrow">F1 Visual Content</p>
+        <h1 class="hero-title">
+          Turn<span class="hero-accent">1</span>Visuals
+        </h1>
+        <p class="hero-tagline">
+          Race results. Session data. F1 visuals — all in one place.
+        </p>
+        <div class="hero-actions">
+          <a href="/portfolio" class="btn btn-primary">View Portfolio</a>
+          <a
+            href="https://twitch.tv/Turn1Visuals"
+            target="_blank"
+            rel="noopener noreferrer"
+            class="btn btn-outline"
+          >
+            <Icon name="simple-icons:twitch" class="btn-icon" />
+            Watch on Twitch
+          </a>
+        </div>
+      </div>
+      <div class="hero-decoration" aria-hidden="true">
+        <span class="hero-deco-number">1</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Socials Hub ── -->
+  <section class="socials-section">
+    <div class="container">
+      <p class="section-label">Find me on</p>
+      <div class="socials-grid">
+        {socials.map(s => (
+          <a
+            href={s.href}
+            target="_blank"
+            rel="noopener noreferrer"
+            class="social-card"
+            aria-label={s.name}
+          >
+            <Icon name={s.icon} class="social-card-icon" />
+            <span class="social-card-name">{s.name}</span>
+            <Icon name="simple-icons:x" class="social-card-arrow" aria-hidden="true" />
+          </a>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Recent Visuals ── -->
+  <section class="visuals-section">
+    <div class="container">
+      <div class="section-header">
+        <p class="section-label">Latest Visuals</p>
+        <a href="/portfolio" class="section-link">View all →</a>
+      </div>
+      <div class="visuals-grid">
+        {recentVisuals.length > 0 ? recentVisuals.map(v => (
+          <article class="visual-card">
+            <div class="visual-image-wrap">
+              <img
+                src={`/images/visuals/${v.data.image}`}
+                alt={v.data.title}
+                class="visual-image"
+                loading="lazy"
+                onerror="this.style.display='none'"
+              />
+              <div class="visual-placeholder" aria-hidden="true"></div>
+            </div>
+            <div class="visual-meta">
+              <span class="visual-category">{v.data.category.replace('-', ' ')}</span>
+              <h3 class="visual-title">{v.data.title}</h3>
+              {v.data.race && <p class="visual-race">{v.data.race}</p>}
+            </div>
+          </article>
+        )) : (
+          <p class="empty-state">Visuals coming soon — check the socials in the meantime.</p>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── About Snippet ── -->
+  <section class="about-snippet">
+    <div class="container about-snippet-inner">
+      <div>
+        <p class="section-label">About</p>
+        <h2 class="about-title">F1 content, built for fans.</h2>
+        <p class="about-text">
+          Turn1Visuals creates F1 session result graphics, standings visuals, and live timing overlays for Twitch.
+          Data-driven design for the motorsport community.
+        </p>
+        <a href="/about" class="btn btn-outline" style="margin-top:1.5rem">Learn more</a>
+      </div>
+      <div class="about-stats">
+        <div class="stat">
+          <span class="stat-number">7</span>
+          <span class="stat-label">Platforms</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">F1</span>
+          <span class="stat-label">Focus</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>
+
+<style>
+  /* ── Hero ── */
+  .hero {
+    padding-block: 6rem 4rem;
+    border-bottom: 1px solid var(--color-border);
+    overflow: hidden;
+    position: relative;
+  }
+
+  .hero-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .hero-content {
+    max-width: 600px;
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(3rem, 8vw, 6rem);
+    line-height: 0.95;
+    letter-spacing: -0.02em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-accent {
+    color: var(--color-accent);
+  }
+
+  .hero-tagline {
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    max-width: 42ch;
+    margin-bottom: 2rem;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .btn-icon {
+    width: 1rem;
+    height: 1rem;
+  }
+
+  /* Decorative big "1" */
+  .hero-decoration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .hero-deco-number {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(8rem, 20vw, 18rem);
+    line-height: 1;
+    color: var(--color-surface);
+    user-select: none;
+    letter-spacing: -0.05em;
+  }
+
+  @media (max-width: 768px) {
+    .hero-decoration { display: none; }
+    .hero { padding-block: 4rem 3rem; }
+  }
+
+  /* ── Socials ── */
+  .socials-section {
+    padding-block: var(--space-section);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .socials-section .section-label {
+    margin-bottom: 1.5rem;
+  }
+
+  .socials-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 0.75rem;
+  }
+
+  .social-card {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    transition: color 0.15s, border-color 0.15s, background 0.15s;
+    text-decoration: none;
+  }
+
+  .social-card:hover {
+    color: var(--color-text);
+    border-color: var(--color-muted);
+    background: #222;
+  }
+
+  .social-card-icon {
+    width: 1.1rem;
+    height: 1.1rem;
+    flex-shrink: 0;
+  }
+
+  .social-card-name {
+    font-size: 0.85rem;
+    font-weight: 500;
+    flex: 1;
+  }
+
+  /* Hide the arrow icon (repurposed simple-icons:x element — we don't actually show it) */
+  .social-card-arrow { display: none; }
+
+  /* ── Recent Visuals ── */
+  .visuals-section {
+    padding-block: var(--space-section);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 1.5rem;
+  }
+
+  .section-link {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 500;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    transition: color 0.15s;
+  }
+
+  .section-link:hover { color: var(--color-text); }
+
+  .visuals-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 1rem;
+  }
+
+  .visual-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    overflow: hidden;
+  }
+
+  .visual-image-wrap {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: var(--color-border);
+    overflow: hidden;
+  }
+
+  .visual-image {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+  }
+
+  .visual-placeholder {
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, #1a1a1a 0%, #222 100%);
+  }
+
+  .visual-meta {
+    padding: 0.875rem 1rem;
+  }
+
+  .visual-category {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 600;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .visual-title {
+    font-family: var(--font-display);
+    font-size: 1rem;
+    font-weight: 600;
+    margin-top: 0.2rem;
+    line-height: 1.3;
+  }
+
+  .visual-race {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    margin-top: 0.2rem;
+  }
+
+  .empty-state {
+    color: var(--color-muted);
+    font-size: 0.9rem;
+    grid-column: 1 / -1;
+  }
+
+  @media (max-width: 768px) {
+    .visuals-grid { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @media (max-width: 480px) {
+    .visuals-grid { grid-template-columns: 1fr; }
+  }
+
+  /* ── About Snippet ── */
+  .about-snippet {
+    padding-block: var(--space-section);
+  }
+
+  .about-snippet-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .about-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    margin-block: 0.75rem 0.75rem;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  .about-text {
+    color: var(--color-muted);
+    max-width: 48ch;
+    font-size: 0.95rem;
+  }
+
+  .about-stats {
+    display: flex;
+    gap: 3rem;
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3rem;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+</style>

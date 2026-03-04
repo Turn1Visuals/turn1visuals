@@ -1,0 +1,84 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="Articles" description="F1 news and analysis from Turn1Visuals.">
+
+  <div class="page-header">
+    <div class="container">
+      <p class="section-label">Read</p>
+      <h1 class="page-title">Articles</h1>
+      <p class="page-desc">F1 analysis, race reviews, and more.</p>
+    </div>
+  </div>
+
+  <div class="container coming-soon-body">
+    <div class="coming-soon-card">
+      <span class="coming-soon-accent">01</span>
+      <h2 class="coming-soon-title">Articles coming soon</h2>
+      <p class="coming-soon-text">
+        Race reviews, driver analysis, and F1 commentary are on the way.
+        Follow on social media for updates.
+      </p>
+      <a href="/" class="btn btn-outline">Back to home</a>
+    </div>
+  </div>
+
+</BaseLayout>
+
+<style>
+  .page-header {
+    padding-block: 4rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 0.5rem;
+  }
+
+  .page-desc {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    margin-top: 0.5rem;
+  }
+
+  .coming-soon-body {
+    padding-block: 6rem;
+    display: flex;
+    justify-content: center;
+  }
+
+  .coming-soon-card {
+    max-width: 480px;
+    text-align: center;
+  }
+
+  .coming-soon-accent {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 5rem;
+    color: var(--color-surface);
+    line-height: 1;
+    display: block;
+    margin-bottom: 1rem;
+  }
+
+  .coming-soon-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.75rem;
+    text-transform: uppercase;
+    margin-bottom: 0.75rem;
+  }
+
+  .coming-soon-text {
+    color: var(--color-muted);
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+</style>

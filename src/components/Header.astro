@@ -1,0 +1,219 @@
+---
+const navLinks = [
+  { label: 'Portfolio', href: '/portfolio' },
+  { label: 'F1',        href: '/f1' },
+  { label: 'Articles',  href: '/articles' },
+  { label: 'About',     href: '/about' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <div class="container header-inner">
+
+    <!-- Logo -->
+    <a href="/" class="logo" aria-label="Turn1Visuals — Home">
+      <!-- Replace the text below with an <img> once you have the SVG logo file:
+           <img src="/logo/t1v-wordmark-white.svg" alt="Turn1Visuals" height="28" />
+      -->
+      <span class="logo-t1v">T1V</span>
+      <span class="logo-text">Turn<span class="logo-accent">1</span>Visuals</span>
+    </a>
+
+    <!-- Desktop nav -->
+    <nav class="nav-desktop" aria-label="Main navigation">
+      {navLinks.map(link => (
+        <a
+          href={link.href}
+          class:list={['nav-link', { 'nav-link--active': currentPath.startsWith(link.href) }]}
+        >
+          {link.label}
+        </a>
+      ))}
+    </nav>
+
+    <!-- Mobile menu toggle -->
+    <button class="menu-toggle" id="menuToggle" aria-label="Toggle menu" aria-expanded="false">
+      <span class="menu-bar"></span>
+      <span class="menu-bar"></span>
+      <span class="menu-bar"></span>
+    </button>
+  </div>
+
+  <!-- Mobile nav -->
+  <nav class="nav-mobile" id="mobileNav" aria-label="Mobile navigation" aria-hidden="true">
+    {navLinks.map(link => (
+      <a
+        href={link.href}
+        class:list={['nav-mobile-link', { 'nav-link--active': currentPath.startsWith(link.href) }]}
+      >
+        {link.label}
+      </a>
+    ))}
+  </nav>
+</header>
+
+<script>
+  const toggle = document.getElementById('menuToggle');
+  const nav    = document.getElementById('mobileNav');
+
+  toggle?.addEventListener('click', () => {
+    const isOpen = toggle.getAttribute('aria-expanded') === 'true';
+    toggle.setAttribute('aria-expanded', String(!isOpen));
+    nav?.setAttribute('aria-hidden', String(isOpen));
+    nav?.classList.toggle('nav-mobile--open');
+    toggle.classList.toggle('menu-toggle--open');
+  });
+</script>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: var(--color-bg);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .header-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 4rem;
+  }
+
+  /* ── Logo ── */
+  .logo {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    text-decoration: none;
+  }
+
+  .logo-t1v {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.4rem;
+    letter-spacing: -0.02em;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  .logo-text {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 1rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    line-height: 1;
+  }
+
+  .logo-accent {
+    color: var(--color-accent);
+  }
+
+  /* ── Desktop Nav ── */
+  .nav-desktop {
+    display: flex;
+    align-items: center;
+    gap: 2rem;
+  }
+
+  .nav-link {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 0.9rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    transition: color 0.15s;
+    position: relative;
+  }
+
+  .nav-link::after {
+    content: '';
+    position: absolute;
+    bottom: -4px;
+    left: 0;
+    width: 0;
+    height: 2px;
+    background: var(--color-accent);
+    transition: width 0.2s;
+  }
+
+  .nav-link:hover {
+    color: var(--color-text);
+  }
+
+  .nav-link:hover::after,
+  .nav-link--active::after {
+    width: 100%;
+  }
+
+  .nav-link--active {
+    color: var(--color-text);
+  }
+
+  /* ── Mobile Toggle ── */
+  .menu-toggle {
+    display: none;
+    flex-direction: column;
+    gap: 5px;
+    background: none;
+    border: none;
+    cursor: pointer;
+    padding: 0.25rem;
+  }
+
+  .menu-bar {
+    display: block;
+    width: 22px;
+    height: 2px;
+    background: var(--color-text);
+    transition: transform 0.2s, opacity 0.2s;
+  }
+
+  .menu-toggle--open .menu-bar:nth-child(1) { transform: translateY(7px) rotate(45deg); }
+  .menu-toggle--open .menu-bar:nth-child(2) { opacity: 0; }
+  .menu-toggle--open .menu-bar:nth-child(3) { transform: translateY(-7px) rotate(-45deg); }
+
+  /* ── Mobile Nav ── */
+  .nav-mobile {
+    display: none;
+    flex-direction: column;
+    padding: 1rem 1.5rem 1.5rem;
+    border-top: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .nav-mobile--open {
+    display: flex;
+  }
+
+  .nav-mobile-link {
+    font-family: var(--font-display);
+    font-weight: 500;
+    font-size: 1.1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.75rem 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: color 0.15s;
+  }
+
+  .nav-mobile-link:last-child { border-bottom: none; }
+
+  .nav-mobile-link:hover,
+  .nav-mobile-link.nav-link--active {
+    color: var(--color-text);
+  }
+
+  /* ── Responsive ── */
+  @media (max-width: 640px) {
+    .nav-desktop { display: none; }
+    .menu-toggle { display: flex; }
+  }
+</style>

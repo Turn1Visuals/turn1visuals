@@ -1,0 +1,353 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+---
+
+<BaseLayout title="F1 Results" description="F1 race results for the current season.">
+
+  <div class="page-header">
+    <div class="container">
+      <p class="section-label">Formula 1</p>
+      <h1 class="page-title">Results</h1>
+    </div>
+  </div>
+
+  <div class="container results-body">
+
+    <nav class="sub-nav">
+      <a href="/f1" class="sub-nav-link">Overview</a>
+      <a href="/f1/drivers" class="sub-nav-link">Drivers</a>
+      <a href="/f1/teams" class="sub-nav-link">Teams</a>
+      <a href="/f1/results" class="sub-nav-link sub-nav-link--active">Results</a>
+    </nav>
+
+    <div class="results-layout">
+      <!-- Race list sidebar -->
+      <aside class="race-list" id="raceList">
+        {Array.from({length: 8}).map(() => (
+          <div class="race-list-item skeleton-item">
+            <div class="skeleton sk-round"></div>
+            <div class="skeleton sk-name"></div>
+          </div>
+        ))}
+      </aside>
+
+      <!-- Selected race results -->
+      <main class="race-detail" id="raceDetail">
+        <div class="select-prompt">
+          <p>Select a race from the list to view results.</p>
+        </div>
+      </main>
+    </div>
+
+  </div>
+
+</BaseLayout>
+
+<script>
+  const BASE = 'https://api.jolpi.ca/ergast/f1';
+  let allRaces: any[] = [];
+  let selectedRound: string | null = null;
+
+  async function loadSeason() {
+    const listEl = document.getElementById('raceList');
+    if (!listEl) return;
+
+    const res = await fetch(`${BASE}/current/results.json?limit=30`).catch(() => null);
+
+    if (!res || !res.ok) {
+      listEl.innerHTML = '<p class="no-data">Could not load race calendar.</p>';
+      return;
+    }
+
+    const data = await res.json();
+    allRaces = data.MRData?.RaceTable?.Races ?? [];
+
+    if (allRaces.length === 0) {
+      listEl.innerHTML = '<p class="no-data">No races available yet for this season.</p>';
+      return;
+    }
+
+    listEl.innerHTML = allRaces.map(race => `
+      <button
+        class="race-list-item"
+        data-round="${race.round}"
+        onclick="selectRace('${race.round}')"
+      >
+        <span class="race-item-round">R${race.round}</span>
+        <div class="race-item-info">
+          <span class="race-item-name">${race.raceName.replace(' Grand Prix', ' GP')}</span>
+          <span class="race-item-date">${new Date(race.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
+        </div>
+      </button>
+    `).join('');
+
+    // Auto-select the most recent race
+    const lastRace = allRaces[allRaces.length - 1];
+    selectRace(lastRace.round);
+  }
+
+  (window as any).selectRace = function(round: string) {
+    selectedRound = round;
+    const race = allRaces.find(r => r.round === round);
+    if (!race) return;
+
+    // Highlight in list
+    document.querySelectorAll('.race-list-item').forEach(el => el.classList.remove('race-list-item--active'));
+    document.querySelector(`[data-round="${round}"]`)?.classList.add('race-list-item--active');
+
+    const detailEl = document.getElementById('raceDetail');
+    if (!detailEl) return;
+
+    const results = race.Results ?? [];
+    detailEl.innerHTML = `
+      <div class="race-detail-header">
+        <span class="race-detail-round">Round ${race.round} · ${race.season}</span>
+        <h2 class="race-detail-title">${race.raceName}</h2>
+        <p class="race-detail-circuit">${race.Circuit.circuitName} · ${race.Circuit.Location.locality}, ${race.Circuit.Location.country}</p>
+        <p class="race-detail-date">${new Date(race.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+      </div>
+      ${results.length === 0
+        ? '<p class="no-data">Results not yet available.</p>'
+        : `<div class="results-table">
+            <div class="results-header">
+              <span>Pos</span><span>Driver</span><span>Team</span><span>Laps</span><span>Time / Status</span><span>Pts</span>
+            </div>
+            ${results.map((r: any) => `
+              <div class="result-row${r.position === '1' ? ' result-row--winner' : ''}">
+                <span class="res-pos">${r.position}</span>
+                <div class="res-driver">
+                  <span class="res-driver-name">${r.Driver.givenName} ${r.Driver.familyName}</span>
+                  <span class="res-driver-code">${r.Driver.code ?? ''}</span>
+                </div>
+                <span class="res-team">${r.Constructor.name}</span>
+                <span class="res-laps">${r.laps}</span>
+                <span class="res-time">${r.Time?.time ?? r.status}</span>
+                <span class="res-pts">${r.points}</span>
+              </div>
+            `).join('')}
+          </div>`
+      }
+    `;
+  };
+
+  loadSeason();
+</script>
+
+<style>
+  .page-header {
+    padding-block: 4rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 0.5rem;
+  }
+
+  .results-body { padding-block: 2.5rem 5rem; }
+
+  .sub-nav {
+    display: flex;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 3rem;
+  }
+
+  .sub-nav-link {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.75rem 1.25rem;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .sub-nav-link:hover { color: var(--color-text); }
+  .sub-nav-link--active { color: var(--color-text); border-bottom-color: var(--color-accent); }
+
+  .results-layout {
+    display: grid;
+    grid-template-columns: 260px 1fr;
+    gap: 2rem;
+    align-items: start;
+  }
+
+  /* Race list */
+  .race-list {
+    display: flex;
+    flex-direction: column;
+    gap: 2px;
+    position: sticky;
+    top: 5rem;
+    max-height: calc(100vh - 6rem);
+    overflow-y: auto;
+  }
+
+  .race-list-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    cursor: pointer;
+    text-align: left;
+    width: 100%;
+    color: var(--color-muted);
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .race-list-item:hover { color: var(--color-text); border-color: var(--color-muted); }
+  .race-list-item--active { color: var(--color-text); border-color: var(--color-accent); border-left-width: 3px; }
+
+  .race-item-round {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    color: var(--color-accent);
+    min-width: 2rem;
+  }
+
+  .race-item-info { flex: 1; }
+
+  .race-item-name {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+    display: block;
+    line-height: 1.2;
+  }
+
+  .race-item-date {
+    font-size: 0.72rem;
+    color: var(--color-muted);
+  }
+
+  /* Skeleton */
+  .skeleton-item {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.875rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+  }
+
+  .sk-round { width: 2rem; height: 1rem; }
+  .sk-name  { flex: 1; height: 1.2rem; }
+
+  /* Race detail */
+  .select-prompt {
+    padding: 3rem;
+    color: var(--color-muted);
+    text-align: center;
+  }
+
+  .race-detail-header {
+    margin-bottom: 2rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .race-detail-round {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+  }
+
+  .race-detail-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    text-transform: uppercase;
+    margin-block: 0.3rem 0.2rem;
+    line-height: 1.1;
+  }
+
+  .race-detail-circuit { font-size: 0.85rem; color: var(--color-muted); }
+  .race-detail-date    { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.25rem; }
+
+  /* Results table */
+  .results-table { display: flex; flex-direction: column; gap: 2px; }
+
+  .results-header {
+    display: grid;
+    grid-template-columns: 3rem 1fr 1fr 4rem 1fr 4rem;
+    padding: 0.5rem 1rem;
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  .result-row {
+    display: grid;
+    grid-template-columns: 3rem 1fr 1fr 4rem 1fr 4rem;
+    align-items: center;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    transition: border-color 0.15s;
+  }
+
+  .result-row:hover { border-color: var(--color-muted); }
+  .result-row--winner { border-left: 3px solid var(--color-accent); }
+
+  .res-pos {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    color: var(--color-muted);
+  }
+
+  .result-row--winner .res-pos { color: var(--color-accent); }
+
+  .res-driver { display: flex; align-items: baseline; gap: 0.5rem; }
+
+  .res-driver-name {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.03em;
+  }
+
+  .res-driver-code {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    color: var(--color-muted);
+    letter-spacing: 0.06em;
+  }
+
+  .res-team   { font-size: 0.8rem; color: var(--color-muted); }
+  .res-laps   { font-size: 0.85rem; color: var(--color-muted); }
+  .res-time   { font-size: 0.82rem; font-family: 'Inter', monospace; color: var(--color-muted); }
+  .res-pts    { font-family: 'Inter', monospace; font-weight: 600; font-size: 0.9rem; text-align: right; }
+
+  .no-data { color: var(--color-muted); font-size: 0.85rem; padding: 1.5rem; }
+
+  @media (max-width: 900px) {
+    .results-layout { grid-template-columns: 1fr; }
+    .race-list { position: static; max-height: none; flex-direction: row; overflow-x: auto; gap: 0.5rem; }
+    .race-list-item { flex-shrink: 0; min-width: 120px; }
+    .results-header, .result-row { grid-template-columns: 3rem 1fr 1fr 4rem; }
+    .results-header span:nth-child(4), .results-header span:nth-child(5),
+    .res-laps, .res-time { display: none; }
+  }
+</style>

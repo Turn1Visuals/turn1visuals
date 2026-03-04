@@ -1,0 +1,242 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Icon } from 'astro-icon/components';
+
+const socials = [
+  { name: 'Twitter / X',  href: 'https://twitter.com/Turn1Visuals',     icon: 'simple-icons:x' },
+  { name: 'Instagram',    href: 'https://instagram.com/Turn1Visuals',    icon: 'simple-icons:instagram' },
+  { name: 'Facebook',     href: 'https://facebook.com/Turn1Visuals',     icon: 'simple-icons:facebook' },
+  { name: 'Threads',      href: 'https://threads.net/@Turn1Visuals',     icon: 'simple-icons:threads' },
+  { name: 'Mastodon',     href: 'https://mastodon.social/@Turn1Visuals', icon: 'simple-icons:mastodon' },
+  { name: 'Bluesky',      href: 'https://bsky.app/profile/Turn1Visuals', icon: 'simple-icons:bluesky' },
+  { name: 'Twitch',       href: 'https://twitch.tv/Turn1Visuals',        icon: 'simple-icons:twitch' },
+];
+---
+
+<BaseLayout title="About" description="Turn1Visuals — F1 visual content creator. Race results, session data, Twitch live timing overlays.">
+
+  <div class="page-header">
+    <div class="container">
+      <p class="section-label">About</p>
+      <h1 class="page-title">Turn1Visuals</h1>
+    </div>
+  </div>
+
+  <div class="container about-body">
+
+    <div class="about-content">
+      <div class="about-text-block">
+        <h2 class="about-heading">Who?</h2>
+        <p>
+          Turn1Visuals is a fan-created F1 content brand built around clean, data-driven race graphics.
+          The focus is on making Formula 1 session data more readable and shareable — race results,
+          qualifying summaries, championship standings, and more.
+        </p>
+      </div>
+
+      <div class="about-text-block">
+        <h2 class="about-heading">What?</h2>
+        <ul class="about-list">
+          <li>Race result and qualifying graphics published after every session</li>
+          <li>Live timing overlay streamed on Twitch during F1 race weekends</li>
+          <li>Driver and constructor standings visuals throughout the season</li>
+          <li>F1 data hub on this website — standings, results, and more</li>
+        </ul>
+      </div>
+
+      <div class="about-text-block">
+        <h2 class="about-heading">Where?</h2>
+        <div class="socials-list">
+          {socials.map(s => (
+            <a href={s.href} target="_blank" rel="noopener noreferrer" class="social-row">
+              <Icon name={s.icon} class="social-row-icon" />
+              <span class="social-row-name">{s.name}</span>
+              <span class="social-row-arrow">→</span>
+            </a>
+          ))}
+        </div>
+      </div>
+
+      <p class="disclaimer">
+        Turn1Visuals is an independent fan project and is not affiliated with Formula 1,
+        Formula One Management (FOM), or the FIA.
+      </p>
+    </div>
+
+    <aside class="about-sidebar">
+      <div class="sidebar-card">
+        <p class="section-label">Quick links</p>
+        <nav class="sidebar-nav">
+          <a href="/portfolio" class="sidebar-link">Portfolio →</a>
+          <a href="/f1" class="sidebar-link">F1 Data →</a>
+          <a href="https://twitch.tv/Turn1Visuals" target="_blank" rel="noopener noreferrer" class="sidebar-link twitch-link">
+            <Icon name="simple-icons:twitch" class="twitch-icon" />
+            Live on Twitch →
+          </a>
+        </nav>
+      </div>
+    </aside>
+
+  </div>
+
+</BaseLayout>
+
+<style>
+  .page-header {
+    padding-block: 4rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 0.5rem;
+  }
+
+  .about-body {
+    display: grid;
+    grid-template-columns: 1fr 280px;
+    gap: 5rem;
+    padding-block: 3rem 5rem;
+    align-items: start;
+  }
+
+  .about-text-block {
+    margin-bottom: 3rem;
+  }
+
+  .about-heading {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.8rem;
+    letter-spacing: 0.12em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    margin-bottom: 0.875rem;
+  }
+
+  .about-content p {
+    color: var(--color-muted);
+    line-height: 1.7;
+    max-width: 60ch;
+  }
+
+  .about-list {
+    color: var(--color-muted);
+    list-style: none;
+    display: flex;
+    flex-direction: column;
+    gap: 0.6rem;
+  }
+
+  .about-list li::before {
+    content: '—';
+    color: var(--color-accent);
+    margin-right: 0.6rem;
+    font-weight: 700;
+  }
+
+  /* Socials list */
+  .socials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+    max-width: 360px;
+  }
+
+  .social-row {
+    display: flex;
+    align-items: center;
+    gap: 0.875rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    transition: color 0.15s, border-color 0.15s;
+    text-decoration: none;
+  }
+
+  .social-row:hover {
+    color: var(--color-text);
+    border-color: var(--color-muted);
+  }
+
+  .social-row-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  .social-row-name {
+    flex: 1;
+    font-size: 0.9rem;
+    font-weight: 500;
+  }
+
+  .social-row-arrow {
+    font-size: 0.85rem;
+    opacity: 0.4;
+  }
+
+  .disclaimer {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    opacity: 0.6;
+    border-top: 1px solid var(--color-border);
+    padding-top: 1.5rem;
+  }
+
+  /* Sidebar */
+  .sidebar-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 1.5rem;
+    position: sticky;
+    top: 5rem;
+  }
+
+  .sidebar-card .section-label { margin-bottom: 1rem; }
+
+  .sidebar-nav {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
+  }
+
+  .sidebar-link {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.6rem 0;
+    border-bottom: 1px solid var(--color-border);
+    transition: color 0.15s;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+
+  .sidebar-link:last-child { border-bottom: none; }
+  .sidebar-link:hover { color: var(--color-text); }
+
+  .twitch-link:hover { color: #9146FF; }
+
+  .twitch-icon {
+    width: 0.9rem;
+    height: 0.9rem;
+  }
+
+  @media (max-width: 900px) {
+    .about-body {
+      grid-template-columns: 1fr;
+      gap: 2rem;
+    }
+
+    .sidebar-card { position: static; }
+  }
+</style>
