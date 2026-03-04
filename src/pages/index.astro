@@ -1,14 +1,6 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 import { Icon } from 'astro-icon/components';
-import { getCollection } from 'astro:content';
-
-// Get featured or most recent visuals for the preview section
-const allVisuals = await getCollection('visuals');
-const recentVisuals = allVisuals
-  .sort((a, b) => b.data.date.getTime() - a.data.date.getTime())
-  .slice(0, 6);
-
 const socials = [
   { name: 'Twitter / X',  href: 'https://twitter.com/Turn1Visuals',    icon: 'simple-icons:x' },
   { name: 'Instagram',    href: 'https://instagram.com/Turn1Visuals',   icon: 'simple-icons:instagram' },
@@ -28,27 +20,36 @@ const socials = [
       <div class="hero-content">
         <p class="section-label hero-eyebrow">F1 Visual Content</p>
         <h1 class="hero-title">
-          Turn<span class="hero-accent">1</span>Visuals
+          <img src="/logo/long_white-red.svg" alt="Turn1Visuals" class="hero-logo" />
         </h1>
         <p class="hero-tagline">
           Race results. Session data. F1 visuals — all in one place.
         </p>
-        <div class="hero-actions">
-          <a href="/portfolio" class="btn btn-primary">View Portfolio</a>
-          <a
-            href="https://twitch.tv/Turn1Visuals"
-            target="_blank"
-            rel="noopener noreferrer"
-            class="btn btn-outline"
-          >
-            <Icon name="simple-icons:twitch" class="btn-icon" />
-            Watch on Twitch
-          </a>
-        </div>
       </div>
       <div class="hero-decoration" aria-hidden="true">
         <span class="hero-deco-number">1</span>
       </div>
+    </div>
+  </section>
+
+  <!-- ── Next GP ── -->
+  <section class="next-gp-section" id="next-gp-section" hidden>
+    <div class="container">
+
+      <div class="next-gp-header">
+        <div>
+          <p class="section-label">Next Race</p>
+          <h2 class="next-gp-name" id="next-gp-name"></h2>
+          <p class="next-gp-meta" id="next-gp-meta"></p>
+          <p class="next-gp-round" id="next-gp-round"></p>
+        </div>
+        <div class="next-gp-actions">
+          <img id="next-gp-track" class="next-gp-track" aria-hidden="true" alt="" hidden />
+        </div>
+      </div>
+
+      <div class="session-cards" id="session-list"></div>
+
     </div>
   </section>
 
@@ -74,61 +75,16 @@ const socials = [
     </div>
   </section>
 
-  <!-- ── Recent Visuals ── -->
-  <section class="visuals-section">
-    <div class="container">
-      <div class="section-header">
-        <p class="section-label">Latest Visuals</p>
-        <a href="/portfolio" class="section-link">View all →</a>
-      </div>
-      <div class="visuals-grid">
-        {recentVisuals.length > 0 ? recentVisuals.map(v => (
-          <article class="visual-card">
-            <div class="visual-image-wrap">
-              <img
-                src={`/images/visuals/${v.data.image}`}
-                alt={v.data.title}
-                class="visual-image"
-                loading="lazy"
-                onerror="this.style.display='none'"
-              />
-              <div class="visual-placeholder" aria-hidden="true"></div>
-            </div>
-            <div class="visual-meta">
-              <span class="visual-category">{v.data.category.replace('-', ' ')}</span>
-              <h3 class="visual-title">{v.data.title}</h3>
-              {v.data.race && <p class="visual-race">{v.data.race}</p>}
-            </div>
-          </article>
-        )) : (
-          <p class="empty-state">Visuals coming soon — check the socials in the meantime.</p>
-        )}
-      </div>
-    </div>
-  </section>
-
   <!-- ── About Snippet ── -->
   <section class="about-snippet">
-    <div class="container about-snippet-inner">
-      <div>
-        <p class="section-label">About</p>
-        <h2 class="about-title">F1 content, built for fans.</h2>
-        <p class="about-text">
-          Turn1Visuals creates F1 session result graphics, standings visuals, and live timing overlays for Twitch.
-          Data-driven design for the motorsport community.
-        </p>
-        <a href="/about" class="btn btn-outline" style="margin-top:1.5rem">Learn more</a>
-      </div>
-      <div class="about-stats">
-        <div class="stat">
-          <span class="stat-number">7</span>
-          <span class="stat-label">Platforms</span>
-        </div>
-        <div class="stat">
-          <span class="stat-number">F1</span>
-          <span class="stat-label">Focus</span>
-        </div>
-      </div>
+    <div class="container">
+      <p class="section-label">About</p>
+      <h2 class="about-title">F1 content, built for fans.</h2>
+      <p class="about-text">
+        Turn1Visuals creates F1 session result graphics, standings visuals, and live timing overlays for Twitch.
+        Data-driven design for the motorsport community.
+      </p>
+      <a href="/about" class="btn btn-outline" style="margin-top:1.5rem">Learn more</a>
     </div>
   </section>
 
@@ -141,6 +97,13 @@ const socials = [
     border-bottom: 1px solid var(--color-border);
     overflow: hidden;
     position: relative;
+    background-color: var(--color-bg);
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+      url('/images/background.png');
+    background-size: cover;
+    background-position: center;
+    background-repeat: no-repeat;
   }
 
   .hero-inner {
@@ -159,18 +122,14 @@ const socials = [
   }
 
   .hero-title {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: clamp(3rem, 8vw, 6rem);
-    line-height: 0.95;
-    letter-spacing: -0.02em;
-    text-transform: uppercase;
-    color: var(--color-text);
     margin-bottom: 1.25rem;
+    line-height: 1;
   }
 
-  .hero-accent {
-    color: var(--color-accent);
+  .hero-logo {
+    display: block;
+    height: clamp(3rem, 8vw, 5.5rem);
+    width: auto;
   }
 
   .hero-tagline {
@@ -185,11 +144,6 @@ const socials = [
     gap: 1rem;
     flex-wrap: wrap;
     align-items: center;
-  }
-
-  .btn-icon {
-    width: 1rem;
-    height: 1rem;
   }
 
   /* Decorative big "1" */
@@ -264,116 +218,9 @@ const socials = [
   /* Hide the arrow icon (repurposed simple-icons:x element — we don't actually show it) */
   .social-card-arrow { display: none; }
 
-  /* ── Recent Visuals ── */
-  .visuals-section {
-    padding-block: var(--space-section);
-    border-bottom: 1px solid var(--color-border);
-  }
-
-  .section-header {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    margin-bottom: 1.5rem;
-  }
-
-  .section-link {
-    font-family: var(--font-display);
-    font-size: 0.85rem;
-    font-weight: 500;
-    letter-spacing: 0.06em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-    transition: color 0.15s;
-  }
-
-  .section-link:hover { color: var(--color-text); }
-
-  .visuals-grid {
-    display: grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-
-  .visual-card {
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-    overflow: hidden;
-  }
-
-  .visual-image-wrap {
-    position: relative;
-    aspect-ratio: 16 / 9;
-    background: var(--color-border);
-    overflow: hidden;
-  }
-
-  .visual-image {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    object-fit: cover;
-  }
-
-  .visual-placeholder {
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(135deg, #1a1a1a 0%, #222 100%);
-  }
-
-  .visual-meta {
-    padding: 0.875rem 1rem;
-  }
-
-  .visual-category {
-    font-family: var(--font-display);
-    font-size: 0.7rem;
-    font-weight: 600;
-    letter-spacing: 0.1em;
-    text-transform: uppercase;
-    color: var(--color-accent);
-  }
-
-  .visual-title {
-    font-family: var(--font-display);
-    font-size: 1rem;
-    font-weight: 600;
-    margin-top: 0.2rem;
-    line-height: 1.3;
-  }
-
-  .visual-race {
-    font-size: 0.8rem;
-    color: var(--color-muted);
-    margin-top: 0.2rem;
-  }
-
-  .empty-state {
-    color: var(--color-muted);
-    font-size: 0.9rem;
-    grid-column: 1 / -1;
-  }
-
-  @media (max-width: 768px) {
-    .visuals-grid { grid-template-columns: repeat(2, 1fr); }
-  }
-
-  @media (max-width: 480px) {
-    .visuals-grid { grid-template-columns: 1fr; }
-  }
-
   /* ── About Snippet ── */
   .about-snippet {
     padding-block: var(--space-section);
-  }
-
-  .about-snippet-inner {
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 4rem;
-    flex-wrap: wrap;
   }
 
   .about-title {
@@ -391,32 +238,353 @@ const socials = [
     font-size: 0.95rem;
   }
 
-  .about-stats {
+  /* ── Next GP ── */
+  .next-gp-section {
+    padding-block: var(--space-section);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .next-gp-header {
     display: flex;
-    gap: 3rem;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 2rem;
+    margin-bottom: 2rem;
+    flex-wrap: wrap;
+  }
+
+  .next-gp-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 0.75rem;
     flex-shrink: 0;
   }
 
-  .stat {
-    display: flex;
-    flex-direction: column;
-    align-items: center;
-    gap: 0.25rem;
+  .next-gp-track {
+    height: 120px;
+    width: auto;
+    opacity: 0.25;
+    filter: invert(1);
   }
 
-  .stat-number {
+  :global(.gp-flag) {
+    font-style: normal;
+    margin-right: 0.35em;
+  }
+
+  .next-gp-name {
     font-family: var(--font-display);
     font-weight: 700;
-    font-size: 3rem;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-block: 0.75rem 0.4rem;
+  }
+
+  .next-gp-meta {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+
+  .next-gp-round {
+    display: inline-block;
+    font-size: 0.7rem;
+    font-family: var(--font-display);
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
     color: var(--color-accent);
+    border: 1px solid var(--color-accent);
+    padding: 0.2em 0.6em;
+    margin-top: 0.75rem;
+  }
+
+  /* Session cards — :global() because they are injected via innerHTML at runtime */
+  :global(.session-cards) {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+    gap: 1rem;
+  }
+
+  :global(.session-card) {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+    padding: 1.25rem 1.25rem 1.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    border-top: 3px solid #333;
+    min-height: 140px;
+  }
+
+  :global(.session-card.is-past) { opacity: 0.3; }
+
+  /* Session type colours */
+  :global(.session-card.type-practice)  { border-top-color: #4da6ff; }
+  :global(.session-card.type-sprint)    { border-top-color: #34d399; }
+  :global(.session-card.type-race)      { border-top-color: var(--color-accent); }
+
+  :global(.session-card.is-live) { border-top-width: 4px; }
+
+  :global(.card-day) {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.1rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text);
     line-height: 1;
   }
 
-  .stat-label {
-    font-size: 0.75rem;
-    font-weight: 500;
+  :global(.card-date) {
+    font-size: 1.1rem;
+    font-weight: 700;
+    color: var(--color-text);
+    margin-left: 0.3rem;
+  }
+
+  :global(.session-card.is-past .card-day)  { color: var(--color-muted); }
+  :global(.session-card.is-live .card-day)  { color: var(--color-accent); }
+
+  :global(.card-label) {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1.15rem;
+    letter-spacing: 0.02em;
+    text-transform: uppercase;
+    line-height: 1.2;
+  }
+
+  :global(.session-card.type-practice .card-label) { color: #4da6ff; }
+  :global(.session-card.type-sprint   .card-label) { color: #34d399; }
+  :global(.session-card.type-race     .card-label) { color: var(--color-accent); }
+  :global(.session-card.is-past       .card-label) { color: var(--color-muted); }
+
+  :global(.card-time) {
+    display: inline-block;
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    color: var(--color-text);
+    background: var(--color-bg);
+    border: 1px solid var(--color-border);
+    padding: 0.25em 0.6em;
+    line-height: 1.4;
+    align-self: flex-start;
+  }
+
+  :global(.session-card.type-practice .card-time) { border-color: #4da6ff; color: #4da6ff; }
+  :global(.session-card.type-sprint   .card-time) { border-color: #34d399; color: #34d399; }
+  :global(.session-card.type-race     .card-time) { border-color: var(--color-accent); color: var(--color-accent); }
+  :global(.session-card.is-past       .card-time) { border-color: var(--color-border); color: var(--color-muted); }
+
+  :global(.card-live-badge) {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.65rem;
+    font-weight: 700;
     letter-spacing: 0.08em;
     text-transform: uppercase;
-    color: var(--color-muted);
+    color: var(--color-accent);
+    text-decoration: none;
+    margin-top: 0.25rem;
+  }
+
+  :global(.card-live-badge:hover) { opacity: 0.8; }
+
+  :global(.card-live-dot) {
+    width: 6px;
+    height: 6px;
+    border-radius: 50%;
+    background: var(--color-accent);
+    flex-shrink: 0;
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
+
+  @media (max-width: 640px) {
+    .next-gp-actions { align-items: flex-start; }
+    .session-cards { grid-template-columns: repeat(2, 1fr); }
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
   }
 </style>
+
+<script>
+  const WORKER_URL = 'https://twitch-status.super-paper-b4d7.workers.dev';
+
+  const SESSION_KEYS  = ['FirstPractice','SecondPractice','ThirdPractice','SprintQualifying','Sprint','Qualifying'];
+  const SESSION_LABELS: Record<string,string> = {
+    FirstPractice:    'Practice 1',
+    SecondPractice:   'Practice 2',
+    ThirdPractice:    'Practice 3',
+    SprintQualifying: 'Sprint Qualifying',
+    Sprint:           'Sprint',
+    Qualifying:       'Qualifying',
+    Race:             'Race',
+  };
+
+  // circuitId (from Jolpica) → F1 media CDN track key (verified against 2026 schedule.json)
+  const CIRCUIT_TRACK_KEYS: Record<string, string> = {
+    albert_park:   'melbourne',
+    shanghai:      'shanghai',
+    suzuka:        'suzuka',
+    bahrain:       'sakhir',
+    jeddah:        'jeddah',
+    miami:         'miami',
+    villeneuve:    'montreal',
+    monaco:        'montecarlo',
+    catalunya:     'catalunya',
+    red_bull_ring: 'spielberg',
+    silverstone:   'silverstone',
+    spa:           'spafrancorchamps',
+    hungaroring:   'hungaroring',
+    zandvoort:     'zandvoort',
+    monza:         'monza',
+    madrid:        'madring',        // new 2026 Madrid circuit
+    baku:          'baku',
+    marina_bay:    'singapore',
+    americas:      'austin',
+    rodriguez:     'mexicocity',
+    interlagos:    'interlagos',
+    vegas:         'lasvegas',
+    losail:        'lusail',
+    yas_marina:    'yasmarinacircuit',
+  };
+
+  const COUNTRY_FLAGS: Record<string, string> = {
+    'Australia':      '🇦🇺',
+    'Austria':        '🇦🇹',
+    'Azerbaijan':     '🇦🇿',
+    'Bahrain':        '🇧🇭',
+    'Belgium':        '🇧🇪',
+    'Brazil':         '🇧🇷',
+    'Canada':         '🇨🇦',
+    'China':          '🇨🇳',
+    'France':         '🇫🇷',
+    'Hungary':        '🇭🇺',
+    'Italy':          '🇮🇹',
+    'Japan':          '🇯🇵',
+    'Mexico':         '🇲🇽',
+    'Monaco':         '🇲🇨',
+    'Netherlands':    '🇳🇱',
+    'Portugal':       '🇵🇹',
+    'Qatar':          '🇶🇦',
+    'Russia':         '🇷🇺',
+    'Saudi Arabia':   '🇸🇦',
+    'Singapore':      '🇸🇬',
+    'Spain':          '🇪🇸',
+    'UAE':            '🇦🇪',
+    'United Arab Emirates': '🇦🇪',
+    'United Kingdom': '🇬🇧',
+    'UK':             '🇬🇧',
+    'USA':            '🇺🇸',
+    'United States':  '🇺🇸',
+  };
+
+  async function getNextGP() {
+    try {
+      const res   = await fetch('https://api.jolpi.ca/ergast/f1/current.json');
+      const data  = await res.json();
+      const races = data?.MRData?.RaceTable?.Races ?? [];
+      const now   = Date.now();
+
+      for (const race of races) {
+        const raceTs = new Date(`${race.date}T${race.time}`).getTime();
+        if (raceTs < now) continue;
+
+        const sessions: { key: string; label: string; ts: number }[] = [];
+        for (const key of SESSION_KEYS) {
+          const s = race[key];
+          if (s?.date && s?.time) {
+            sessions.push({ key, label: SESSION_LABELS[key], ts: new Date(`${s.date}T${s.time}`).getTime() });
+          }
+        }
+        sessions.push({ key: 'Race', label: 'Race', ts: raceTs });
+
+        return {
+          name:      race.raceName,
+          circuit:   race.Circuit.circuitName,
+          country:   race.Circuit.Location.country,
+          circuitId: race.Circuit.circuitId as string,
+          season:    race.season as string,
+          round:     Number(race.round),
+          total:     races.length,
+          sessions,
+        };
+      }
+    } catch { /* silently fail */ }
+    return null;
+  }
+
+function fmtTime(ts: number) {
+    return new Date(ts).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' });
+  }
+
+  async function init() {
+    const [twitchResult, gpResult] = await Promise.allSettled([
+      fetch(WORKER_URL).then(r => r.json()),
+      getNextGP(),
+    ]);
+
+    const twitch = twitchResult.status === 'fulfilled' ? twitchResult.value : null;
+    const gp     = gpResult.status     === 'fulfilled' ? gpResult.value     : null;
+    const isLive = !!twitch?.live;
+
+
+    if (!gp) return;
+
+    const now     = Date.now();
+    const section = document.getElementById('next-gp-section');
+    const nameEl  = document.getElementById('next-gp-name');
+    const metaEl  = document.getElementById('next-gp-meta');
+    const roundEl = document.getElementById('next-gp-round');
+    const listEl  = document.getElementById('session-list');
+
+    const flag = COUNTRY_FLAGS[gp.country] ?? '';
+    if (nameEl)  nameEl.innerHTML = flag ? `<span class="gp-flag">${flag}</span>${gp.name}` : gp.name;
+    if (metaEl)  metaEl.textContent  = `${gp.circuit} · ${gp.country}`;
+    if (roundEl) roundEl.textContent = `Round ${gp.round} of ${gp.total}`;
+
+    const trackKey = CIRCUIT_TRACK_KEYS[gp.circuitId];
+    const trackEl  = document.getElementById('next-gp-track') as HTMLImageElement | null;
+    if (trackEl && trackKey) {
+      trackEl.src = `https://media.formula1.com/image/upload/common/f1/${gp.season}/track/${gp.season}track${trackKey}blackoutline.svg`;
+      trackEl.onerror = () => { trackEl.hidden = true; };
+      trackEl.removeAttribute('hidden');
+    }
+
+    if (listEl) {
+      const nextIdx    = gp.sessions.findIndex(s => s.ts > now);
+      // most recently started session = the one just before nextIdx (or last if all past)
+      const currentIdx = nextIdx > 0 ? nextIdx - 1 : nextIdx === -1 ? gp.sessions.length - 1 : -1;
+
+      listEl.innerHTML = gp.sessions.map((s, i) => {
+        const past      = s.ts <= now;
+        const isCurrent = isLive && i === currentIdx;
+        const typeClass = ['FirstPractice','SecondPractice','ThirdPractice'].includes(s.key)
+          ? 'type-practice'
+          : ['SprintQualifying','Sprint'].includes(s.key)
+          ? 'type-sprint'
+          : 'type-race';
+        const day  = new Date(s.ts).toLocaleDateString('en-GB', { weekday: 'short' });
+        const date = new Date(s.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
+        return `<div class="session-card ${typeClass}${past ? ' is-past' : ''}${isCurrent ? ' is-live' : ''}">
+          <p class="card-label">${s.label}</p>
+          <p class="card-day">${day} <span class="card-date">${date}</span></p>
+          <p class="card-time">${fmtTime(s.ts)}</p>
+          ${isCurrent ? '<a href="/twitch" class="card-live-badge"><span class="card-live-dot"></span>Watch Live Timing</a>' : ''}
+        </div>`;
+      }).join('');
+    }
+
+    if (section) section.hidden = false;
+  }
+
+  init();
+</script>

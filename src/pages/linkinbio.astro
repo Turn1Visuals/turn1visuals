@@ -1,0 +1,319 @@
+---
+import MinimalLayout from '../layouts/MinimalLayout.astro';
+import { Icon } from 'astro-icon/components';
+
+const links = [
+  {
+    label: 'Articles',
+    sublabel: 'F1 write-ups & analysis',
+    href: '/articles',
+    icon: 'simple-icons:rss',
+    internal: true,
+  },
+  {
+    label: 'F1 Data',
+    sublabel: 'Standings, results & more',
+    href: '/f1',
+    icon: 'simple-icons:f1',
+    internal: true,
+  },
+  {
+    label: 'Twitch',
+    sublabel: 'Live timing overlays',
+    href: 'https://twitch.tv/Turn1Visuals',
+    icon: 'simple-icons:twitch',
+    internal: false,
+  },
+  {
+    label: 'Instagram',
+    sublabel: '@Turn1Visuals',
+    href: 'https://instagram.com/Turn1Visuals',
+    icon: 'simple-icons:instagram',
+    internal: false,
+  },
+  {
+    label: 'Twitter / X',
+    sublabel: '@Turn1Visuals',
+    href: 'https://twitter.com/Turn1Visuals',
+    icon: 'simple-icons:x',
+    internal: false,
+  },
+  {
+    label: 'Bluesky',
+    sublabel: '@Turn1Visuals',
+    href: 'https://bsky.app/profile/Turn1Visuals',
+    icon: 'simple-icons:bluesky',
+    internal: false,
+  },
+  {
+    label: 'Threads',
+    sublabel: '@Turn1Visuals',
+    href: 'https://threads.net/@Turn1Visuals',
+    icon: 'simple-icons:threads',
+    internal: false,
+  },
+  {
+    label: 'Mastodon',
+    sublabel: '@Turn1Visuals',
+    href: 'https://mastodon.social/@Turn1Visuals',
+    icon: 'simple-icons:mastodon',
+    internal: false,
+  },
+  {
+    label: 'Facebook',
+    sublabel: 'Turn1Visuals',
+    href: 'https://facebook.com/Turn1Visuals',
+    icon: 'simple-icons:facebook',
+    internal: false,
+  },
+];
+---
+
+<MinimalLayout title="Links">
+  <main class="page">
+
+    <header class="profile">
+      <a href="/" class="profile-logo">
+        <img
+          src="/logo/long_white-red.svg"
+          alt="Turn1Visuals"
+          class="logo-img"
+          height="32"
+        />
+      </a>
+      <p class="profile-tagline">F1 visuals — race results — live timing</p>
+    </header>
+
+    <nav class="links" aria-label="Links">
+      {links.map(link => (
+        <a
+          href={link.href}
+          class="link-item"
+          data-twitch-row={link.label === 'Twitch' ? 'true' : undefined}
+          {...(!link.internal ? { target: '_blank', rel: 'noopener noreferrer' } : {})}
+        >
+          <span class="link-icon-wrap">
+            <Icon name={link.icon} class="link-icon" />
+          </span>
+          <span class="link-text">
+            <span class="link-label">
+              {link.label}
+              {link.label === 'Twitch' && (
+                <span class="live-badge" id="twitch-badge" aria-hidden="true"></span>
+              )}
+            </span>
+            <span class="link-sublabel" data-twitch-sublabel={link.label === 'Twitch' ? 'true' : undefined}>
+              {link.sublabel}
+            </span>
+          </span>
+          <span class="link-arrow" aria-hidden="true">→</span>
+        </a>
+      ))}
+    </nav>
+
+    <footer class="page-footer">
+      <a href="/" class="footer-home">turn1visuals.com</a>
+    </footer>
+
+  </main>
+</MinimalLayout>
+
+<style>
+  .page {
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    padding: 3rem 1.25rem 2rem;
+    max-width: 480px;
+    margin-inline: auto;
+  }
+
+  /* ── Profile ── */
+  .profile {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.75rem;
+    margin-bottom: 2.5rem;
+    text-align: center;
+  }
+
+  .profile-logo {
+    display: block;
+  }
+
+  .logo-img {
+    height: 32px;
+    width: auto;
+    display: block;
+  }
+
+  .profile-tagline {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+
+  /* ── Links ── */
+  .links {
+    display: flex;
+    flex-direction: column;
+    gap: 0.625rem;
+    width: 100%;
+  }
+
+  .link-item {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    padding: 0.9rem 1.1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    text-decoration: none;
+    transition: border-color 0.15s, background 0.15s;
+  }
+
+  .link-item:hover {
+    border-color: var(--color-accent);
+    background: #1f1f1f;
+  }
+
+  .link-icon-wrap {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2rem;
+    height: 2rem;
+    background: var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .link-icon {
+    width: 1rem;
+    height: 1rem;
+    color: var(--color-text);
+  }
+
+  .link-text {
+    display: flex;
+    flex-direction: column;
+    gap: 0.1rem;
+    flex: 1;
+    min-width: 0;
+  }
+
+  .link-label {
+    font-weight: 700;
+    font-size: 0.9rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+
+  .link-sublabel {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    font-weight: 400;
+  }
+
+  .link-arrow {
+    font-size: 1rem;
+    color: var(--color-muted);
+    flex-shrink: 0;
+    transition: color 0.15s, transform 0.15s;
+  }
+
+  .link-item:hover .link-arrow {
+    color: var(--color-accent);
+    transform: translateX(3px);
+  }
+
+  /* ── Footer ── */
+  .page-footer {
+    margin-top: auto;
+    padding-top: 2.5rem;
+  }
+
+  .footer-home {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    transition: color 0.15s;
+  }
+
+  .footer-home:hover {
+    color: var(--color-text);
+  }
+
+  /* ── Live Badge ── */
+  .live-badge {
+    display: none;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.6rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    color: #fff;
+    background: var(--color-accent);
+    padding: 0.15em 0.45em;
+    vertical-align: middle;
+    margin-left: 0.4rem;
+    position: relative;
+    top: -1px;
+  }
+
+  .live-badge::before {
+    content: '';
+    display: inline-block;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: #fff;
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
+
+  .live-badge.is-live {
+    display: inline-flex;
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.4; transform: scale(0.7); }
+  }
+
+  [data-twitch-row='true'].is-live {
+    border-color: var(--color-accent);
+  }
+</style>
+
+<script>
+  // Replace with your Cloudflare Worker URL after deploying workers/twitch-status.js
+  const WORKER_URL = 'https://twitch-status.super-paper-b4d7.workers.dev';
+
+  async function checkTwitchStatus() {
+    try {
+      const res  = await fetch(WORKER_URL);
+      const data = await res.json();
+
+      if (data.live) {
+        const badge    = document.getElementById('twitch-badge');
+        const row      = document.querySelector('[data-twitch-row]');
+        const sublabel = document.querySelector('[data-twitch-sublabel]');
+
+        if (badge)    { badge.textContent = 'LIVE'; badge.classList.add('is-live'); }
+        if (row)      { row.classList.add('is-live'); }
+        if (sublabel) {
+          sublabel.textContent = data.viewers
+            ? `${data.viewers.toLocaleString()} viewers`
+            : 'Streaming now';
+        }
+      }
+    } catch {
+      // Silently fail — live status is non-critical
+    }
+  }
+
+  checkTwitchStatus();
+</script>

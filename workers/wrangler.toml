@@ -1,0 +1,3 @@
+name = "twitch-status"
+main = "twitch-status.js"
+compatibility_date = "2025-01-01"

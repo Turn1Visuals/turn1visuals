@@ -1,0 +1,155 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+
+const updated = '4 March 2026';
+---
+
+<BaseLayout title="Privacy Policy" description="Privacy policy for Turn1Visuals — how data is handled on this website.">
+
+  <section class="privacy-section">
+    <div class="container privacy-inner">
+
+      <header class="privacy-header">
+        <p class="section-label">Legal</p>
+        <h1 class="privacy-title">Privacy Policy</h1>
+        <p class="privacy-meta">Last updated: {updated}</p>
+      </header>
+
+      <div class="prose">
+
+        <h2>Who we are</h2>
+        <p>
+          Turn1Visuals is a personal F1 content project. This website is operated by Turn1Visuals and is not affiliated with Formula 1, FOM, or FIA.
+          Contact: <a href="mailto:info@turn1visuals.com">info@turn1visuals.com</a>
+        </p>
+
+        <h2>What data is collected</h2>
+        <p>
+          Turn1Visuals does not directly collect, store, or process any personal data about visitors. There are no accounts, forms, or tracking scripts on this website.
+        </p>
+        <p>
+          However, third-party services used to operate and deliver this website may process data as described below.
+        </p>
+
+        <h2>Third-party services</h2>
+
+        <h3>GitHub Pages (hosting)</h3>
+        <p>
+          This website is hosted on GitHub Pages. GitHub may collect server logs including IP addresses as part of standard hosting operations. See <a href="https://docs.github.com/en/site-policy/privacy-policies/github-general-privacy-statement" target="_blank" rel="noopener noreferrer">GitHub's Privacy Statement</a>.
+        </p>
+
+        <h3>Cloudflare (live status)</h3>
+        <p>
+          The Twitch live status check is handled by a Cloudflare Worker. Cloudflare may process IP addresses and request metadata as part of delivering this service. See <a href="https://www.cloudflare.com/privacypolicy/" target="_blank" rel="noopener noreferrer">Cloudflare's Privacy Policy</a>.
+          No personal visitor data is sent to the Twitch API.
+        </p>
+
+        <h3>Twitch (embedded stream)</h3>
+        <p>
+          The Live page embeds a Twitch player and chat. These are only loaded after you explicitly click <strong>Load stream</strong>. By doing so, you consent to Twitch setting cookies and collecting data in accordance with their <a href="https://www.twitch.tv/p/en/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">Privacy Notice</a>.
+          Your consent is remembered for the current browser session only.
+        </p>
+
+        <h2>Cookies</h2>
+        <p>
+          This website does not set any cookies itself. Twitch may set cookies when you choose to load the embedded stream on the Live page, as described above.
+        </p>
+
+        <h2>Advertising</h2>
+        <p>
+          This website currently carries no advertising. If advertising is introduced in the future, this policy will be updated and an appropriate consent mechanism will be implemented before any advertising scripts are loaded.
+        </p>
+
+        <h2>Your rights (GDPR)</h2>
+        <p>
+          Under the GDPR you have the right to access, correct, or request deletion of any personal data held about you. As Turn1Visuals does not collect personal data directly, any such requests should be directed to the relevant third-party services listed above. For questions, contact <a href="mailto:info@turn1visuals.com">info@turn1visuals.com</a>.
+        </p>
+
+        <h2>Changes to this policy</h2>
+        <p>
+          This policy may be updated when new services are added or circumstances change. The date at the top of this page reflects the most recent revision.
+        </p>
+
+      </div>
+
+    </div>
+  </section>
+
+</BaseLayout>
+
+<style>
+  .privacy-section {
+    padding-block: var(--space-section);
+  }
+
+  .privacy-inner {
+    max-width: 720px;
+  }
+
+  .privacy-header {
+    margin-bottom: 3rem;
+  }
+
+  .privacy-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-block: 0.75rem 0.5rem;
+  }
+
+  .privacy-meta {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+
+  /* ── Prose ── */
+  .prose {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--color-muted);
+  }
+
+  .prose h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .prose h2:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .prose h3 {
+    font-family: var(--font-display);
+    font-weight: 600;
+    font-size: 0.85rem;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin-top: 0.5rem;
+  }
+
+  .prose a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .prose strong {
+    color: var(--color-text);
+    font-weight: 600;
+  }
+</style>

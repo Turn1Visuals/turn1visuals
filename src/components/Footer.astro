@@ -18,7 +18,7 @@ const year = new Date().getFullYear();
   <div class="container footer-inner">
 
     <div class="footer-brand">
-      <span class="footer-logo">T1V</span>
+      <img src="/logo/icon_white-red.svg" alt="Turn1Visuals" class="footer-logo" />
       <p class="footer-tagline">F1 Visuals. Race Data. All in one place.</p>
     </div>
 
@@ -44,9 +44,12 @@ const year = new Date().getFullYear();
 
   <div class="footer-bottom">
     <div class="container">
-      <p class="footer-copy">
-        &copy; {year} Turn1Visuals. Not affiliated with Formula 1, FOM, or FIA.
-      </p>
+      <div class="footer-bottom-inner">
+        <p class="footer-copy">
+          &copy; {year} Turn1Visuals. Not affiliated with Formula 1, FOM, or FIA.
+        </p>
+        <a href="/privacy" class="footer-privacy">Privacy Policy</a>
+      </div>
     </div>
   </div>
 </footer>
@@ -70,14 +73,10 @@ const year = new Date().getFullYear();
 
   /* Brand */
   .footer-logo {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 2rem;
-    color: var(--color-accent);
-    letter-spacing: -0.02em;
-    line-height: 1;
     display: block;
-    margin-bottom: 0.5rem;
+    height: 40px;
+    width: auto;
+    margin-bottom: 0.75rem;
   }
 
   .footer-tagline {
@@ -126,9 +125,27 @@ const year = new Date().getFullYear();
     padding-block: 1rem;
   }
 
+  .footer-bottom-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
   .footer-copy {
     font-size: 0.8rem;
     color: var(--color-muted);
+  }
+
+  .footer-privacy {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    transition: color 0.15s;
+  }
+
+  .footer-privacy:hover {
+    color: var(--color-text);
   }
 
   @media (max-width: 640px) {

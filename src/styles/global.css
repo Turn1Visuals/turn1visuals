@@ -1,5 +1,35 @@
 @import "tailwindcss";
 
+/* ─── Gotham Fonts ──────────────────────────────────────── */
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham/Gotham-Book.woff2') format('woff2');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham/Gotham-Medium.woff2') format('woff2');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham/Gotham-Bold.woff2') format('woff2');
+  font-weight: 700;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'Gotham';
+  src: url('/fonts/gotham/Gotham-Ultra.woff2') format('woff2');
+  font-weight: 900;
+  font-style: normal;
+  font-display: swap;
+}
+
 /* ─── Design Tokens ─────────────────────────────────────── */
 :root {
   --color-bg:          #111111;
@@ -10,8 +40,8 @@
   --color-accent:      #e10600;
   --color-accent-dark: #a00000;
 
-  --font-display: 'Oswald', sans-serif;
-  --font-body:    'Inter', sans-serif;
+  --font-display: 'Gotham', sans-serif;
+  --font-body:    'Gotham', sans-serif;
 
   --space-section: 5rem;
   --max-width: 1200px;

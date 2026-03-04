@@ -1,0 +1,521 @@
+---
+import BaseLayout from '../layouts/BaseLayout.astro';
+import { Icon } from 'astro-icon/components';
+---
+
+<BaseLayout title="Twitch" description="Watch Turn1Visuals live on Twitch — F1 live timing overlays, session reactions and race coverage.">
+
+  <!-- ── Status Bar ── -->
+  <div class="status-bar" id="status-bar">
+    <div class="container status-inner">
+      <span class="status-indicator" id="status-indicator">
+        <span class="status-dot" id="status-dot"></span>
+        <span id="status-text">Checking stream status…</span>
+      </span>
+      <a
+        href="https://twitch.tv/Turn1Visuals"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="status-follow"
+      >
+        <Icon name="simple-icons:twitch" class="status-twitch-icon" />
+        Follow on Twitch
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Offline placeholder (shown while checking / when offline) ── -->
+  <div class="offline-gate" id="offline-gate">
+    <div class="offline-box">
+      <span class="offline-dot" id="offline-dot"></span>
+      <h2 class="offline-title" id="offline-title">Checking stream…</h2>
+      <p class="offline-text" id="offline-text"></p>
+      <a
+        href="https://twitch.tv/Turn1Visuals"
+        target="_blank"
+        rel="noopener noreferrer"
+        class="btn btn-outline"
+        id="offline-follow-btn"
+        style="display:none"
+      >
+        <Icon name="simple-icons:twitch" class="btn-icon" />
+        Follow to get notified
+      </a>
+    </div>
+  </div>
+
+  <!-- ── Consent gate (shown only when live, before embed loads) ── -->
+  <div class="consent-gate" id="consent-gate" hidden>
+    <div class="consent-box">
+      <p class="section-label">Before you watch</p>
+      <h2 class="consent-title">This content is hosted by Twitch</h2>
+      <p class="consent-text">
+        Loading the stream and chat will allow Twitch to set cookies and collect data about your visit,
+        in accordance with their <a href="https://www.twitch.tv/p/en/legal/privacy-notice/" target="_blank" rel="noopener noreferrer" class="consent-link">Privacy Notice</a>.
+      </p>
+      <button class="btn btn-primary" id="consent-btn">Load stream</button>
+      <p class="consent-small">
+        Your choice is remembered for this session. <a href="/privacy" class="consent-link">Privacy policy</a>
+      </p>
+    </div>
+  </div>
+
+  <!-- ── Stream (shown after consent, only when live) ── -->
+  <section class="stream-section" id="stream-section" hidden>
+    <div class="container">
+      <div class="stream-grid">
+
+        <!-- Player -->
+        <div class="player-wrap">
+          <div class="player-ratio">
+            <iframe
+              id="twitch-player"
+              src=""
+              allowfullscreen
+              title="Turn1Visuals Twitch stream"
+            ></iframe>
+          </div>
+        </div>
+
+        <!-- Chat -->
+        <div class="chat-wrap">
+          <iframe
+            id="twitch-chat"
+            src=""
+            title="Turn1Visuals Twitch chat"
+          ></iframe>
+        </div>
+
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Info ── -->
+  <section class="info-section">
+    <div class="container info-inner">
+      <div>
+        <p class="section-label">On Stream</p>
+        <h2 class="info-title">F1 coverage, live.</h2>
+        <p class="info-text">
+          Turn1Visuals streams F1 sessions with custom live timing overlays, real-time data graphics, and race commentary.
+          Follow to get notified whenever a session goes live.
+        </p>
+        <a
+          href="https://twitch.tv/Turn1Visuals"
+          target="_blank"
+          rel="noopener noreferrer"
+          class="btn btn-primary"
+          style="margin-top: 1.5rem"
+        >
+          <Icon name="simple-icons:twitch" class="btn-icon" />
+          Follow Turn1Visuals
+        </a>
+      </div>
+      <div class="info-stats">
+        <div class="stat">
+          <span class="stat-number">F1</span>
+          <span class="stat-label">Focus</span>
+        </div>
+        <div class="stat">
+          <span class="stat-number">Live</span>
+          <span class="stat-label">Timing</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>
+
+<script>
+  const WORKER_URL  = 'https://twitch-status.super-paper-b4d7.workers.dev';
+  const CHANNEL     = 'turn1visuals';
+  const host        = window.location.hostname;
+
+  // ── Elements ──
+  const offlineGate  = document.getElementById('offline-gate');
+  const offlineTitle = document.getElementById('offline-title');
+  const offlineText  = document.getElementById('offline-text');
+  const offlineDot   = document.getElementById('offline-dot');
+  const offlineBtn   = document.getElementById('offline-follow-btn') as HTMLAnchorElement;
+  const consentGate  = document.getElementById('consent-gate');
+  const streamSec    = document.getElementById('stream-section');
+  const consentBtn   = document.getElementById('consent-btn');
+  const bar          = document.getElementById('status-bar');
+  const statusDot    = document.getElementById('status-dot');
+  const statusText   = document.getElementById('status-text');
+
+  // ── F1 schedule helper ──
+  const _KEYS   = ['FirstPractice','SecondPractice','ThirdPractice','SprintQualifying','Sprint','Qualifying'];
+  const _LABELS: Record<string,string> = {
+    FirstPractice:'Practice 1', SecondPractice:'Practice 2', ThirdPractice:'Practice 3',
+    SprintQualifying:'Sprint Qualifying', Sprint:'Sprint', Qualifying:'Qualifying', Race:'Race',
+  };
+
+  async function getNextSession() {
+    try {
+      const res   = await fetch('https://api.jolpi.ca/ergast/f1/current.json');
+      const data  = await res.json();
+      const races = (data?.MRData?.RaceTable?.Races ?? []) as any[];
+      const now   = Date.now();
+      for (const race of races) {
+        const raceTs = new Date(`${race.date}T${race.time}`).getTime();
+        if (raceTs < now) continue;
+        const sessions = [] as { label: string; ts: number }[];
+        for (const key of _KEYS) {
+          const s = race[key];
+          if (s?.date && s?.time) sessions.push({ label: _LABELS[key], ts: new Date(`${s.date}T${s.time}`).getTime() });
+        }
+        sessions.push({ label: 'Race', ts: raceTs });
+        const next = sessions.find(s => s.ts > now);
+        if (next) return { raceName: race.raceName as string, label: next.label, ts: next.ts };
+      }
+    } catch { /* silently fail */ }
+    return null;
+  }
+
+  // ── Load embeds (after consent) ──
+  function loadEmbeds() {
+    const player = document.getElementById('twitch-player') as HTMLIFrameElement;
+    const chat   = document.getElementById('twitch-chat')   as HTMLIFrameElement;
+    if (player) player.src = `https://player.twitch.tv/?channel=${CHANNEL}&parent=${host}`;
+    if (chat)   chat.src   = `https://www.twitch.tv/embed/${CHANNEL}/chat?parent=${host}&darkpopout`;
+    if (consentGate) consentGate.hidden = true;
+    if (streamSec)   streamSec.hidden   = false;
+    sessionStorage.setItem('twitch-consent', '1');
+  }
+
+  consentBtn?.addEventListener('click', loadEmbeds);
+
+  // ── Show/hide sections based on live status ──
+  function applyStatus(live: boolean, title?: string | null, viewers?: number | null,
+                        nextSess?: { raceName: string; label: string; ts: number } | null) {
+    // Status bar
+    bar?.classList.toggle('is-live',    live);
+    bar?.classList.toggle('is-offline', !live);
+    statusDot?.classList.toggle('is-live', live);
+    if (statusText) {
+      statusText.textContent = live
+        ? (title ? `LIVE NOW — ${title}${viewers ? ` · ${viewers.toLocaleString()} viewers` : ''}` : 'LIVE NOW')
+        : 'Currently offline — follow to get notified';
+    }
+
+    if (live) {
+      if (offlineGate) offlineGate.hidden = true;
+      if (sessionStorage.getItem('twitch-consent')) {
+        loadEmbeds();
+      } else if (consentGate) {
+        consentGate.hidden = false;
+      }
+    } else {
+      if (offlineGate)  offlineGate.hidden  = false;
+      if (consentGate)  consentGate.hidden  = true;
+      if (streamSec)    streamSec.hidden    = true;
+      if (offlineDot)   offlineDot.classList.add('is-offline');
+      if (offlineBtn)   offlineBtn.style.display = '';
+
+      if (nextSess) {
+        const d = new Date(nextSess.ts);
+        const dateStr = d.toLocaleDateString('en-GB', { weekday:'short', day:'numeric', month:'short' });
+        const timeStr = d.toLocaleTimeString('en-GB', { hour:'2-digit', minute:'2-digit' });
+        if (offlineTitle) offlineTitle.textContent = nextSess.label;
+        if (offlineText)  offlineText.textContent  = `${nextSess.raceName} · ${dateStr} · ${timeStr}`;
+      } else {
+        if (offlineTitle) offlineTitle.textContent = 'Not live right now';
+        if (offlineText)  offlineText.textContent  = 'Follow on Twitch to get notified when the next session starts.';
+      }
+    }
+  }
+
+  // ── Poll worker + schedule ──
+  async function checkStatus() {
+    const [twitchRes, nextSess] = await Promise.allSettled([
+      fetch(WORKER_URL).then(r => r.json()),
+      getNextSession(),
+    ]);
+    const twitch = twitchRes.status === 'fulfilled' ? twitchRes.value : null;
+    const sess   = nextSess.status  === 'fulfilled' ? nextSess.value  : null;
+    applyStatus(!!twitch?.live, twitch?.title, twitch?.viewers, sess);
+  }
+
+  checkStatus();
+  setInterval(checkStatus, 60_000);
+</script>
+
+<style>
+  /* ── Status Bar ── */
+  .status-bar {
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .status-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    height: 2.75rem;
+  }
+
+  .status-indicator {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    font-size: 0.8rem;
+    font-weight: 500;
+    letter-spacing: 0.04em;
+    color: var(--color-muted);
+  }
+
+  .status-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--color-border);
+    flex-shrink: 0;
+    transition: background 0.2s;
+  }
+
+  .status-dot.is-live {
+    background: var(--color-accent);
+    animation: live-pulse 1.4s ease-in-out infinite;
+  }
+
+  .status-bar.is-live .status-indicator {
+    color: var(--color-text);
+  }
+
+  .status-bar.is-live {
+    border-bottom-color: var(--color-accent);
+  }
+
+  @keyframes live-pulse {
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50%       { opacity: 0.5; transform: scale(0.75); }
+  }
+
+  .status-follow {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.4rem;
+    font-size: 0.8rem;
+    font-weight: 600;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    transition: color 0.15s;
+    white-space: nowrap;
+  }
+
+  .status-follow:hover { color: var(--color-text); }
+
+  .status-twitch-icon {
+    width: 0.85rem;
+    height: 0.85rem;
+  }
+
+  /* ── Offline Gate ── */
+  .offline-gate {
+    padding-block: 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .offline-box {
+    max-width: 480px;
+    width: 100%;
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .offline-dot {
+    display: block;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--color-border);
+  }
+
+  .offline-dot.is-offline {
+    background: var(--color-muted);
+  }
+
+  .offline-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.4rem, 3vw, 2rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+    color: var(--color-muted);
+  }
+
+  .offline-text {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    max-width: 36ch;
+    line-height: 1.6;
+  }
+
+  /* ── Consent Gate ── */
+  .consent-gate {
+    padding-block: 5rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .consent-box {
+    max-width: 480px;
+    width: 100%;
+    padding: 2.5rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    text-align: center;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 1rem;
+  }
+
+  .consent-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.2rem, 2.5vw, 1.6rem);
+    text-transform: uppercase;
+    line-height: 1.15;
+  }
+
+  .consent-text {
+    font-size: 0.9rem;
+    color: var(--color-muted);
+    line-height: 1.6;
+    max-width: 38ch;
+  }
+
+  .consent-link {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  .consent-small {
+    font-size: 0.75rem;
+    color: var(--color-muted);
+  }
+
+  /* ── Stream ── */
+  .stream-section {
+    padding-block: 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .stream-grid {
+    display: grid;
+    grid-template-columns: 1fr 340px;
+    gap: 1rem;
+    align-items: start;
+  }
+
+  /* 16:9 player */
+  .player-wrap {
+    min-width: 0;
+  }
+
+  .player-ratio {
+    position: relative;
+    aspect-ratio: 16 / 9;
+    background: #000;
+  }
+
+  .player-ratio iframe {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+  }
+
+  /* Chat */
+  .chat-wrap {
+    height: 100%;
+  }
+
+  .chat-wrap iframe {
+    width: 100%;
+    height: 100%;
+    min-height: 500px;
+    border: none;
+    background: var(--color-surface);
+  }
+
+  @media (max-width: 900px) {
+    .stream-grid {
+      grid-template-columns: 1fr;
+    }
+    .chat-wrap iframe {
+      min-height: 400px;
+    }
+  }
+
+  /* ── Info ── */
+  .info-section {
+    padding-block: var(--space-section);
+  }
+
+  .info-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 4rem;
+    flex-wrap: wrap;
+  }
+
+  .info-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    margin-block: 0.75rem;
+    text-transform: uppercase;
+    line-height: 1.1;
+  }
+
+  .info-text {
+    color: var(--color-muted);
+    max-width: 48ch;
+    font-size: 0.95rem;
+  }
+
+  .info-stats {
+    display: flex;
+    gap: 3rem;
+    flex-shrink: 0;
+  }
+
+  .stat {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 0.25rem;
+  }
+
+  .stat-number {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 3rem;
+    color: var(--color-accent);
+    line-height: 1;
+  }
+
+  .stat-label {
+    font-size: 0.75rem;
+    font-weight: 500;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+</style>

@@ -1,9 +1,8 @@
 ---
 const navLinks = [
-  { label: 'Portfolio', href: '/portfolio' },
-  { label: 'F1',        href: '/f1' },
-  { label: 'Articles',  href: '/articles' },
-  { label: 'About',     href: '/about' },
+  { label: 'F1',          href: '/f1' },
+  { label: 'Live Timing', href: '/twitch' },
+  { label: 'About',       href: '/about' },
 ];
 
 const currentPath = Astro.url.pathname;
@@ -14,11 +13,12 @@ const currentPath = Astro.url.pathname;
 
     <!-- Logo -->
     <a href="/" class="logo" aria-label="Turn1Visuals — Home">
-      <!-- Replace the text below with an <img> once you have the SVG logo file:
-           <img src="/logo/t1v-wordmark-white.svg" alt="Turn1Visuals" height="28" />
-      -->
-      <span class="logo-t1v">T1V</span>
-      <span class="logo-text">Turn<span class="logo-accent">1</span>Visuals</span>
+      <img
+        src="/logo/icon_white-red.svg"
+        alt="Turn1Visuals"
+        class="logo-img"
+        height="32"
+      />
     </a>
 
     <!-- Desktop nav -->
@@ -91,27 +91,10 @@ const currentPath = Astro.url.pathname;
     text-decoration: none;
   }
 
-  .logo-t1v {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.4rem;
-    letter-spacing: -0.02em;
-    color: var(--color-accent);
-    line-height: 1;
-  }
-
-  .logo-text {
-    font-family: var(--font-display);
-    font-weight: 600;
-    font-size: 1rem;
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: var(--color-text);
-    line-height: 1;
-  }
-
-  .logo-accent {
-    color: var(--color-accent);
+  .logo-img {
+    height: 26px;
+    width: auto;
+    display: block;
   }
 
   /* ── Desktop Nav ── */
