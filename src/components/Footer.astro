@@ -50,7 +50,10 @@ const year = new Date().getFullYear();
         <p class="footer-copy">
           &copy; {year} Turn1Visuals. Not affiliated with Formula 1, FOM, or FIA.
         </p>
-        <a href="/privacy" class="footer-privacy">Privacy Policy</a>
+        <div class="footer-links">
+          <a href="/f1-2026-assets" class="footer-privacy">F1 2026 Assets</a>
+          <a href="/privacy" class="footer-privacy">Privacy Policy</a>
+        </div>
       </div>
     </div>
   </div>
@@ -148,6 +151,11 @@ const year = new Date().getFullYear();
 
   .footer-privacy:hover {
     color: var(--color-text);
+  }
+
+  .footer-links {
+    display: flex;
+    gap: 1.25rem;
   }
 
   @media (max-width: 640px) {

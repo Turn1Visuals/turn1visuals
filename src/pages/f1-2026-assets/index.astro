@@ -160,7 +160,6 @@ const fontFaceCSS = fonts.map(f => {
           <thead>
             <tr>
               <th>Team</th>
-              <th>Full Name</th>
               <th>Logos</th>
               <th>Chassis / PU</th>
               <th>Cars</th>
@@ -181,7 +180,6 @@ const fontFaceCSS = fonts.map(f => {
                       <a href={t.url} target="_blank" rel="noopener noreferrer">{t.name}</a>
                     </div>
                   </td>
-                  <td class="muted">{p['Full Team Name'] || '—'}</td>
                   <td>
                     <div class="logos-row">
                       <img src={u.logoC} alt="color"  class="logo-img" style="background:#fff" onerror="this.style.display='none'" />
@@ -196,7 +194,6 @@ const fontFaceCSS = fonts.map(f => {
                   <td>
                     <div class="cars-row" style={`background: ${grad}`}>
                       <img src={u.carL} alt="left"  class="car-img" onerror="this.style.display='none'" />
-                      <img src={u.carF} alt="front" class="car-img" onerror="this.style.display='none'" />
                       <img src={u.carR} alt="right" class="car-img" onerror="this.style.display='none'" />
                     </div>
                   </td>
