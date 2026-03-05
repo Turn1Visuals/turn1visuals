@@ -1,0 +1,583 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { readFileSync } from 'fs';
+import { join } from 'path';
+
+const dataDir = join(process.cwd(), 'public/f1-2026-assets');
+
+const drivers: any[] = JSON.parse(readFileSync(join(dataDir, 'drivers.json'), 'utf-8'));
+const teams: any[]   = JSON.parse(readFileSync(join(dataDir, 'teams.json'),   'utf-8'));
+const schedule: any[]= JSON.parse(readFileSync(join(dataDir, 'schedule.json'),'utf-8'));
+const assets: any[]  = JSON.parse(readFileSync(join(dataDir, 'assets.json'),  'utf-8'));
+const fonts: any[]   = JSON.parse(readFileSync(join(dataDir, 'fonts.json'),   'utf-8'));
+
+// Team color lookup
+const teamColors: Record<string, { team: string; accessible: string }> = {};
+for (const t of teams) {
+  if (t.name && t.colours) teamColors[t.name] = t.colours;
+}
+
+// Sort drivers by team then name
+const sortedDrivers = [...drivers].sort((a, b) => {
+  const ta = a.profile?.Team || '', tb = b.profile?.Team || '';
+  return ta !== tb ? ta.localeCompare(tb) : a.name.localeCompare(b.name);
+});
+
+// Group assets by category
+const groupedAssets: Record<string, any[]> = {};
+for (const asset of assets) {
+  const cat = asset.category || 'other';
+  if (!groupedAssets[cat]) groupedAssets[cat] = [];
+  groupedAssets[cat].push(asset);
+}
+
+const CDN = 'https://media.formula1.com/image/upload';
+
+function driverUrls(d: any) {
+  const id  = d.driver_id || '';
+  const tid = d.profile?.team_id_drivernumber || '';
+  const colorHex = (teamColors[d.profile?.Team]?.team || '#111111').replace('#', '');
+  return {
+    portrait: `${CDN}/ar_1:1,c_crop,g_north,w_1000/b_rgb:${colorHex}/common/f1/2026/${tid}/${id}/2026${tid}${id}front.png`,
+    right:    `${CDN}/d_common:f1:2026:fallback:driver:2026fallbackdriverright/common/f1/2026/${tid}/${id}/2026${tid}${id}right.png`,
+    front:    `${CDN}/d_common:f1:2026:fallback:driver:2026fallbackdriverfront/common/f1/2026/${tid}/${id}/2026${tid}${id}front.png`,
+    left:     `${CDN}/d_common:f1:2026:fallback:driver:2026fallbackdriverleft/common/f1/2026/${tid}/${id}/2026${tid}${id}left.png`,
+    helmet:   `/f1-2026-assets/assets/driverhelmets/${(d.profile?.['Last Name'] || '').toLowerCase()}.png`,
+    numberW:  `${CDN}/common/f1/2026/${tid}/${id}/2026${tid}${id}numberwhite.svg`,
+    numberB:  `${CDN}/common/f1/2026/${tid}/${id}/2026${tid}${id}numberblack.svg`,
+  };
+}
+
+function teamUrls(t: any) {
+  const id = t.team_id || '';
+  const accHex = (t.colours?.accessible || '2a2a3e').replace('#', '');
+  return {
+    badge:    `${CDN}/c_scale,h_300/b_rgb:${accHex}/c_lpad,h_400,w_400/f_png/common/f1/2026/${id}/2026${id}logowhite.svg`,
+    logoC:    `${CDN}/common/f1/2026/${id}/2026${id}logo.svg`,
+    logoW:    `${CDN}/common/f1/2026/${id}/2026${id}logowhite.svg`,
+    logoB:    `${CDN}/common/f1/2026/${id}/2026${id}logoblack.svg`,
+    carL:     `${CDN}/d_common:f1:2026:fallback:car:2026fallbackcarleft.png/common/f1/2026/${id}/2026${id}carleft.png`,
+    carF:     `${CDN}/d_common:f1:2026:fallback:car:2026fallbackcarfront.png/common/f1/2026/${id}/2026${id}carfront.png`,
+    carR:     `${CDN}/d_common:f1:2026:fallback:car:2026fallbackcarright.png/common/f1/2026/${id}/2026${id}carright.png`,
+  };
+}
+
+// Font-face CSS
+const fontFaceCSS = fonts.map(f => {
+  const cls = `pf-${f.family.toLowerCase().replace(/\s+/g,'-')}-${f.weight}-${f.style}`;
+  return `@font-face { font-family: "${f.family}"; src: url("/f1-2026-assets/${f.file}"); font-weight: ${f.weight}; font-style: ${f.style}; } .${cls} { font-family: "${f.family}", sans-serif; font-weight: ${f.weight}; font-style: ${f.style}; }`;
+}).join('\n');
+---
+
+<BaseLayout title="F1 2026 Assets" description="F1 2026 driver portraits, team data, race schedule, logos and fonts.">
+
+  <div class="page-header">
+    <div class="container">
+      <p class="section-label">Formula 1</p>
+      <h1 class="page-title">2026 Assets</h1>
+      <p class="page-desc">Driver portraits · Team data · Race schedule · Logos · Fonts</p>
+    </div>
+  </div>
+
+  <div class="container assets-body">
+
+    <nav class="tab-nav">
+      <button class="tab-btn tab-btn--active" data-tab="drivers">Drivers</button>
+      <button class="tab-btn" data-tab="teams">Teams</button>
+      <button class="tab-btn" data-tab="schedule">Schedule</button>
+      <button class="tab-btn" data-tab="assets">Assets</button>
+      <button class="tab-btn" data-tab="fonts">Fonts</button>
+    </nav>
+
+    <!-- ── Drivers ── -->
+    <section id="tab-drivers" class="tab-section">
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Driver</th>
+              <th>Code</th>
+              <th>Team</th>
+              <th>Portraits</th>
+              <th>Helmet</th>
+              <th>Country</th>
+              <th>Born</th>
+              <th>Numbers</th>
+            </tr>
+          </thead>
+          <tbody>
+            {sortedDrivers.map(d => {
+              const p   = d.profile || {};
+              const u   = driverUrls(d);
+              const col = teamColors[p.Team] || { team: '#333', accessible: '#333' };
+              const code = (p['Last Name'] || '').substring(0, 3).toUpperCase();
+              const flagSrc = p['Country Flag'] ? `/f1-2026-assets/flags/${p['Country Flag']}.svg` : null;
+              return (
+                <tr>
+                  <td>
+                    <div class="driver-name-cell">
+                      <img src={u.portrait} alt={d.name} class="portrait-circle" onerror="this.style.display='none'" />
+                      <a href={d.url} target="_blank" rel="noopener noreferrer">{p['First Name']} {p['Last Name']}</a>
+                    </div>
+                  </td>
+                  <td class="mono">{code}</td>
+                  <td>{p.Team || '—'}</td>
+                  <td>
+                    <div class="portraits-row" style={`background: linear-gradient(to bottom, ${col.team}, ${col.accessible})`}>
+                      <img src={u.right}  alt="right"  class="portrait-img" onerror="this.style.display='none'" />
+                      <img src={u.front}  alt="front"  class="portrait-img" onerror="this.style.display='none'" />
+                      <img src={u.left}   alt="left"   class="portrait-img" onerror="this.style.display='none'" />
+                    </div>
+                  </td>
+                  <td class="img-cell">
+                    <img src={u.helmet} alt="helmet" class="helmet-img" onerror="this.style.display='none'" />
+                  </td>
+                  <td>
+                    <div class="flag-cell">
+                      {flagSrc && <img src={flagSrc} alt={p.Country} class="flag-img" />}
+                      <span>{p.Country || '—'}</span>
+                    </div>
+                  </td>
+                  <td class="muted">{p['Date of Birth'] || '—'}</td>
+                  <td>
+                    <div class="numbers-row">
+                      <img src={u.numberW} alt="W" class="number-img" style="background:#000" onerror="this.style.display='none'" />
+                      <img src={u.numberB} alt="B" class="number-img" style="background:#fff" onerror="this.style.display='none'" />
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Teams ── -->
+    <section id="tab-teams" class="tab-section" hidden>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Team</th>
+              <th>Full Name</th>
+              <th>Logos</th>
+              <th>Chassis / PU</th>
+              <th>Cars</th>
+              <th>Colors</th>
+            </tr>
+          </thead>
+          <tbody>
+            {teams.map(t => {
+              const p = t.profile || {};
+              const u = teamUrls(t);
+              const col = t.colours || {};
+              const grad = `linear-gradient(to bottom, ${col.team || '#333'}, ${col.accessible || '#333'})`;
+              return (
+                <tr>
+                  <td>
+                    <div class="team-name-cell">
+                      <img src={u.badge} alt={t.name} class="team-badge-circle" onerror="this.style.display='none'" />
+                      <a href={t.url} target="_blank" rel="noopener noreferrer">{t.name}</a>
+                    </div>
+                  </td>
+                  <td class="muted">{p['Full Team Name'] || '—'}</td>
+                  <td>
+                    <div class="logos-row">
+                      <img src={u.logoC} alt="color"  class="logo-img" style="background:#fff" onerror="this.style.display='none'" />
+                      <img src={u.logoW} alt="white"  class="logo-img" style="background:#000" onerror="this.style.display='none'" />
+                      <img src={u.logoB} alt="black"  class="logo-img" style="background:#fff" onerror="this.style.display='none'" />
+                    </div>
+                  </td>
+                  <td>
+                    <span class="mono">{p['Chassis'] || '—'}</span><br />
+                    <span class="muted">{p['Power Unit'] || '—'}</span>
+                  </td>
+                  <td>
+                    <div class="cars-row" style={`background: ${grad}`}>
+                      <img src={u.carL} alt="left"  class="car-img" onerror="this.style.display='none'" />
+                      <img src={u.carF} alt="front" class="car-img" onerror="this.style.display='none'" />
+                      <img src={u.carR} alt="right" class="car-img" onerror="this.style.display='none'" />
+                    </div>
+                  </td>
+                  <td>
+                    <div class="colors-row">
+                      <div class="color-swatch" style={`background:${col.team}`} title={col.team}></div>
+                      <span class="mono">{col.team}</span>
+                    </div>
+                    <div class="colors-row" style="margin-top:4px">
+                      <div class="color-swatch" style={`background:${col.accessible}`} title={col.accessible}></div>
+                      <span class="mono">{col.accessible}</span>
+                    </div>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Schedule ── -->
+    <section id="tab-schedule" class="tab-section" hidden>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Rnd</th>
+              <th>Country</th>
+              <th>Dates</th>
+              <th>Track Outline</th>
+              <th>Track Detail</th>
+              <th>Race</th>
+            </tr>
+          </thead>
+          <tbody>
+            {schedule.map(race => {
+              const flagSrc = race.flag ? `/f1-2026-assets/flags/${race.flag}.svg` : null;
+              const trackOutline = race.track ? `${CDN}/common/f1/2026/track/2026track${race.track}blackoutline.svg` : null;
+              const trackDetail  = race.track ? `${CDN}/common/f1/2026/track/2026track${race.track}detailed.webp` : null;
+              return (
+                <tr>
+                  <td class="mono">{race.round}</td>
+                  <td>
+                    <div class="flag-cell">
+                      {flagSrc && <img src={flagSrc} alt={race.country} class="flag-img" />}
+                      <span>{race.country}</span>
+                    </div>
+                  </td>
+                  <td class="muted nowrap">{race.dates || '—'}</td>
+                  <td class="img-cell">
+                    {trackOutline && <img src={trackOutline} alt="outline" class="track-outline" onerror="this.style.display='none'" />}
+                  </td>
+                  <td class="img-cell">
+                    {trackDetail && <img src={trackDetail} alt="detail" class="track-detail" onerror="this.style.display='none'" />}
+                  </td>
+                  <td>
+                    <a href={race.url || '#'} target="_blank" rel="noopener noreferrer">{race.full_name || race.name}</a>
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <!-- ── Assets ── -->
+    <section id="tab-assets" class="tab-section" hidden>
+      {Object.keys(groupedAssets).sort().map(cat => (
+        <div class="asset-category">
+          <h2 class="asset-category-title">{cat.charAt(0).toUpperCase() + cat.slice(1)}s</h2>
+          <div class="assets-grid">
+            {groupedAssets[cat].map(asset => (
+              <div class="asset-card">
+                <div class="asset-preview" style={asset.background ? `background:${asset.background}` : ''}>
+                  <img src={asset.url} alt={asset.name} onerror="this.style.display='none'" />
+                </div>
+                <p class="asset-name">{asset.name}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ))}
+    </section>
+
+    <!-- ── Fonts ── -->
+    <section id="tab-fonts" class="tab-section" hidden>
+      <div class="table-wrap">
+        <table>
+          <thead>
+            <tr>
+              <th>Name</th>
+              <th>Preview</th>
+              <th>WOFF2</th>
+              <th>OTF</th>
+            </tr>
+          </thead>
+          <tbody>
+            {fonts.map(f => {
+              const cls = `pf-${f.family.toLowerCase().replace(/\s+/g,'-')}-${f.weight}-${f.style}`;
+              return (
+                <tr>
+                  <td><strong>{f.name}</strong></td>
+                  <td>
+                    <div class={`font-preview ${cls}`}>
+                      The Quick Brown Fox Jumps Over The Lazy Dog · 0123456789
+                    </div>
+                  </td>
+                  <td class="img-cell">
+                    <a href={`/f1-2026-assets/${f.file}`} class="dl-btn" download>WOFF2</a>
+                  </td>
+                  <td class="img-cell">
+                    {f.file_otf
+                      ? <a href={`/f1-2026-assets/${f.file_otf}`} class="dl-btn" download>OTF</a>
+                      : <span class="muted">—</span>
+                    }
+                  </td>
+                </tr>
+              );
+            })}
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <p class="disclaimer">All assets are property of Formula 1® and are displayed for informational purposes only. Unofficial fan resource — not affiliated with F1, FOM, or FIA.</p>
+
+  </div>
+
+</BaseLayout>
+
+<style is:global>
+  {/* injected via JS below for font-face */}
+</style>
+
+<style>
+  .page-header {
+    padding-block: 4rem 2rem;
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .page-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2.5rem, 6vw, 4.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-top: 0.5rem;
+  }
+
+  .page-desc { color: var(--color-muted); font-size: 0.95rem; margin-top: 0.5rem; }
+
+  .assets-body { padding-block: 2.5rem 5rem; }
+
+  /* Tabs */
+  .tab-nav {
+    display: flex;
+    gap: 0;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 2.5rem;
+  }
+
+  .tab-btn {
+    font-family: var(--font-display);
+    font-size: 0.85rem;
+    font-weight: 600;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    padding: 0.75rem 1.25rem;
+    border: none;
+    border-bottom: 2px solid transparent;
+    margin-bottom: -1px;
+    background: none;
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .tab-btn:hover { color: var(--color-text); }
+  .tab-btn--active { color: var(--color-text); border-bottom-color: var(--color-accent); }
+
+  /* Table */
+  .table-wrap { overflow-x: auto; }
+
+  table {
+    width: 100%;
+    border-collapse: collapse;
+    font-size: 0.85rem;
+  }
+
+  th {
+    padding: 0.6rem 0.875rem;
+    text-align: left;
+    font-family: var(--font-display);
+    font-size: 0.68rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+    background: var(--color-surface);
+    border-bottom: 1px solid var(--color-border);
+    white-space: nowrap;
+  }
+
+  td {
+    padding: 0.6rem 0.875rem;
+    border-bottom: 1px solid var(--color-border);
+    vertical-align: middle;
+  }
+
+  tr:hover td { background: color-mix(in srgb, var(--color-surface) 60%, transparent); }
+
+  /* Driver cells */
+  .driver-name-cell, .team-name-cell {
+    display: flex;
+    align-items: center;
+    gap: 0.625rem;
+    white-space: nowrap;
+  }
+
+  .driver-name-cell a, .team-name-cell a {
+    color: var(--color-text);
+    text-decoration: none;
+    font-weight: 600;
+  }
+
+  .driver-name-cell a:hover, .team-name-cell a:hover { color: var(--color-accent); }
+
+  .portrait-circle {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    object-fit: cover;
+    border: 1.5px solid var(--color-border);
+    flex-shrink: 0;
+  }
+
+  .team-badge-circle {
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+    flex-shrink: 0;
+  }
+
+  .portraits-row {
+    display: flex;
+    gap: 4px;
+    padding: 6px;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .portrait-img { height: 72px; width: auto; object-fit: contain; }
+  .helmet-img   { height: 64px; width: auto; object-fit: contain; }
+
+  .flag-cell { display: flex; align-items: center; gap: 0.5rem; }
+  .flag-img  { width: 18px; height: 18px; object-fit: contain; }
+
+  .numbers-row { display: flex; gap: 6px; align-items: center; }
+  .number-img  { width: 56px; height: 56px; object-fit: contain; padding: 4px; }
+
+  .logos-row { display: flex; gap: 6px; align-items: center; }
+  .logo-img  { width: 52px; height: 52px; object-fit: contain; padding: 6px; }
+
+  .cars-row { display: flex; gap: 6px; padding: 6px; align-items: center; justify-content: center; }
+  .car-img  { height: 36px; width: auto; object-fit: contain; }
+
+  .colors-row  { display: flex; align-items: center; gap: 0.5rem; }
+  .color-swatch { width: 20px; height: 20px; border-radius: 3px; flex-shrink: 0; border: 1px solid var(--color-border); }
+
+  /* Schedule */
+  .track-outline { height: 40px; width: auto; filter: invert(1); opacity: 0.8; }
+  .track-detail  { height: 56px; width: auto; }
+
+  /* Assets */
+  .asset-category { margin-bottom: 3rem; }
+
+  .asset-category-title {
+    font-family: var(--font-display);
+    font-size: 0.75rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-accent);
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--color-border);
+    margin-bottom: 1.25rem;
+  }
+
+  .assets-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+    gap: 1rem;
+  }
+
+  .asset-card {
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    padding: 1rem;
+    text-align: center;
+  }
+
+  .asset-preview {
+    height: 100px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin-bottom: 0.75rem;
+  }
+
+  .asset-preview img { max-height: 100%; max-width: 100%; object-fit: contain; }
+
+  .asset-name {
+    font-size: 0.72rem;
+    color: var(--color-muted);
+    word-break: break-word;
+  }
+
+  /* Fonts */
+  .font-preview {
+    font-size: 0.9rem;
+    padding: 0.75rem 1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-text);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .dl-btn {
+    display: inline-block;
+    background: var(--color-accent);
+    color: #fff;
+    font-family: var(--font-display);
+    font-size: 0.65rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    padding: 0.25em 0.6em;
+    text-decoration: none;
+  }
+
+  .dl-btn:hover { opacity: 0.85; }
+
+  /* Util */
+  .img-cell  { text-align: center; }
+  .mono      { font-family: monospace; font-size: 0.82rem; }
+  .muted     { color: var(--color-muted); }
+  .nowrap    { white-space: nowrap; }
+  .disclaimer {
+    margin-top: 3rem;
+    font-size: 0.75rem;
+    color: var(--color-muted);
+    border-top: 1px solid var(--color-border);
+    padding-top: 1.5rem;
+  }
+
+  @media (max-width: 768px) {
+    .tab-btn { padding: 0.75rem 0.75rem; font-size: 0.75rem; }
+  }
+</style>
+
+<script define:vars={{ fontFaceCSS }}>
+  // Inject font-face rules
+  const style = document.createElement('style');
+  style.textContent = fontFaceCSS;
+  document.head.appendChild(style);
+
+  // Tab switching
+  const btns = document.querySelectorAll('.tab-btn');
+  const sections = document.querySelectorAll('.tab-section');
+
+  btns.forEach(btn => {
+    btn.addEventListener('click', () => {
+      const tab = btn.dataset.tab;
+      btns.forEach(b => b.classList.remove('tab-btn--active'));
+      sections.forEach(s => s.hidden = true);
+      btn.classList.add('tab-btn--active');
+      document.getElementById(`tab-${tab}`).hidden = false;
+    });
+  });
+</script>
