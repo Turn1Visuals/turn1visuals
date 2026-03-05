@@ -307,6 +307,34 @@ const socials = [
     gap: 1rem;
   }
 
+  :global(.countdown-banner) {
+    grid-column: 1 / -1;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    padding: 0.6rem 1rem;
+    background: color-mix(in srgb, var(--color-accent) 8%, var(--color-surface));
+    border: 1px solid color-mix(in srgb, var(--color-accent) 30%, transparent);
+    border-left: 3px solid var(--color-accent);
+  }
+
+  :global(.countdown-label) {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    color: var(--color-muted);
+  }
+
+  :global(.countdown-time) {
+    font-family: var(--font-display);
+    font-size: 0.95rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    color: var(--color-accent);
+  }
+
   :global(.session-card) {
     display: flex;
     flex-direction: column;
@@ -574,13 +602,33 @@ function fmtTime(ts: number) {
           : 'type-race';
         const day  = new Date(s.ts).toLocaleDateString('en-GB', { weekday: 'short' });
         const date = new Date(s.ts).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' });
-        return `<div class="session-card ${typeClass}${past ? ' is-past' : ''}${isCurrent ? ' is-live' : ''}">
+        const countdown = (i === nextIdx && nextIdx >= 0)
+          ? `<div class="countdown-banner"><span class="countdown-label">Next session in</span><span class="countdown-time" id="session-countdown"></span></div>`
+          : '';
+        return `${countdown}<div class="session-card ${typeClass}${past ? ' is-past' : ''}${isCurrent ? ' is-live' : ''}">
           <p class="card-label">${s.label}</p>
           <p class="card-day">${day} <span class="card-date">${date}</span></p>
           <p class="card-time">${fmtTime(s.ts)}</p>
           ${isCurrent ? '<a href="/twitch" class="card-live-badge"><span class="card-live-dot"></span>Watch Live Timing</a>' : ''}
         </div>`;
       }).join('');
+
+      if (nextIdx >= 0) {
+        const nextTs = gp.sessions[nextIdx].ts;
+        const tick = () => {
+          const remaining = nextTs - Date.now();
+          const el = document.getElementById('session-countdown');
+          if (!el) return;
+          if (remaining <= 0) { el.textContent = 'Starting now'; return; }
+          const d = Math.floor(remaining / 86400000);
+          const h = Math.floor((remaining % 86400000) / 3600000);
+          const m = Math.floor((remaining % 3600000) / 60000);
+          const s = Math.floor((remaining % 60000) / 1000);
+          el.textContent = [d > 0 ? `${d}d` : '', `${h}h`, `${m}m`, `${s}s`].filter(Boolean).join(' ');
+        };
+        tick();
+        setInterval(tick, 1000);
+      }
     }
 
     if (section) section.hidden = false;
