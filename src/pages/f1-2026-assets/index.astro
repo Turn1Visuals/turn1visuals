@@ -270,14 +270,17 @@ const fontFaceCSS = fonts.map(f => {
         <div class="asset-category">
           <h2 class="asset-category-title">{cat.charAt(0).toUpperCase() + cat.slice(1)}s</h2>
           <div class="assets-grid">
-            {groupedAssets[cat].map(asset => (
+            {groupedAssets[cat].map(asset => {
+              const assetUrl = asset.url?.startsWith('http') ? asset.url : `/f1-2026-assets/${asset.url}`;
+              return (
               <div class="asset-card">
                 <div class="asset-preview" style={asset.background ? `background:${asset.background}` : ''}>
-                  <img src={asset.url} alt={asset.name} onerror="this.style.display='none'" />
+                  <img src={assetUrl} alt={asset.name} onerror="this.style.display='none'" />
                 </div>
                 <p class="asset-name">{asset.name}</p>
               </div>
-            ))}
+              );
+            })}
           </div>
         </div>
       ))}
@@ -524,9 +527,8 @@ const fontFaceCSS = fonts.map(f => {
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     color: var(--color-text);
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    white-space: normal;
+    word-break: break-word;
   }
 
   .dl-btn {
