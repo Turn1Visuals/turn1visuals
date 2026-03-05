@@ -604,7 +604,7 @@ function fmtTime(ts: number) {
           const h = Math.floor((remaining % 86400000) / 3600000);
           const m = Math.floor((remaining % 3600000) / 60000);
           const s = Math.floor((remaining % 60000) / 1000);
-          el.textContent = [d > 0 ? `${d}d` : '', `${h}h`, `${m}m`, `${s}s`].filter(Boolean).join(' ');
+          el.textContent = 'live in: ' + [d > 0 ? `${d}d` : '', `${h}h`, `${m}m`, `${s}s`].filter(Boolean).join(' ');
         };
         tick();
         setInterval(tick, 1000);
