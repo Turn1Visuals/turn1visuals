@@ -1,0 +1,347 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+import { Icon } from 'astro-icon/components';
+
+const features = [
+  {
+    icon: 'simple-icons:obsstudio',
+    title: 'One-click Go Live',
+    desc: 'Start your YouTube broadcast, set your Twitch title and category, and trigger OBS all at once.',
+  },
+  {
+    icon: 'simple-icons:youtube',
+    title: 'YouTube & Twitch Management',
+    desc: 'Live stream management pages for YouTube Studio and Twitch Stream Manager built right into the app.',
+  },
+  {
+    icon: 'simple-icons:tiktok',
+    title: 'TikTok Uploads',
+    desc: 'Upload highlight clips directly to TikTok with title, description, hashtags, and visibility settings.',
+  },
+  {
+    icon: 'simple-icons:twitch',
+    title: 'Multi-platform Chat',
+    desc: 'Send messages to YouTube and Twitch chat simultaneously from a single input bar.',
+  },
+  {
+    icon: 'simple-icons:googlechrome',
+    title: 'Built-in Browser',
+    desc: 'Pin your most-used URLs as persistent tabs — dashboards, timing apps, social feeds — all in one window.',
+  },
+  {
+    icon: 'simple-icons:windows',
+    title: 'App Launcher',
+    desc: 'Launch OBS, Photoshop, or any other tool directly from the sidebar without leaving the dashboard.',
+  },
+];
+
+const platforms = [
+  { icon: 'simple-icons:youtube',  name: 'YouTube'   },
+  { icon: 'simple-icons:twitch',   name: 'Twitch'    },
+  { icon: 'simple-icons:tiktok',   name: 'TikTok'    },
+  { icon: 'simple-icons:x',        name: 'Twitter/X' },
+  { icon: 'simple-icons:obsstudio',name: 'OBS'       },
+];
+---
+
+<BaseLayout
+  title="T1V App"
+  description="T1V App — a desktop streaming and content management tool for F1 content creators. Go live on YouTube, Twitch, and Twitter/X, upload to TikTok, and manage your workflow from one place."
+>
+
+  <!-- ── Hero ── -->
+  <section class="hero">
+    <div class="container hero-inner">
+      <div class="hero-content">
+        <p class="section-label hero-eyebrow">Desktop App</p>
+        <h1 class="hero-title">T1V App</h1>
+        <p class="hero-tagline">
+          A desktop streaming and content management tool for F1 content creators.
+          Go live, upload clips, manage chat — all from one place.
+        </p>
+        <div class="hero-actions">
+          <a href="https://github.com/Turn1Visuals/T1Vapp/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+            Download
+          </a>
+          <a href="https://github.com/Turn1Visuals/T1Vapp" target="_blank" rel="noopener noreferrer" class="btn btn-outline">
+            View on GitHub
+          </a>
+        </div>
+      </div>
+      <div class="hero-decoration" aria-hidden="true">
+        <span class="hero-deco-text">T1V</span>
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Platforms ── -->
+  <section class="platforms-section">
+    <div class="container">
+      <p class="section-label" style="margin-bottom:1.25rem">Works with</p>
+      <div class="platforms-row">
+        {platforms.map(p => (
+          <div class="platform-chip">
+            <Icon name={p.icon} class="platform-icon" />
+            <span>{p.name}</span>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Features ── -->
+  <section class="features-section">
+    <div class="container">
+      <p class="section-label">Features</p>
+      <h2 class="features-title">Everything in one window.</h2>
+      <div class="features-grid">
+        {features.map(f => (
+          <div class="feature-card">
+            <Icon name={f.icon} class="feature-icon" />
+            <h3 class="feature-title">{f.title}</h3>
+            <p class="feature-desc">{f.desc}</p>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- ── Download CTA ── -->
+  <section class="cta-section">
+    <div class="container cta-inner">
+      <div>
+        <p class="section-label">Get the app</p>
+        <h2 class="cta-title">Built for Windows.</h2>
+        <p class="cta-desc">
+          T1V App is a free, open-source Electron desktop application.
+          Download the latest installer from GitHub Releases.
+        </p>
+      </div>
+      <div class="cta-actions">
+        <a href="https://github.com/Turn1Visuals/T1Vapp/releases/latest" target="_blank" rel="noopener noreferrer" class="btn btn-primary">
+          Download Latest
+        </a>
+        <div class="cta-links">
+          <a href="/tos">Terms of Service</a>
+          <a href="/privacy">Privacy Policy</a>
+        </div>
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>
+
+<style>
+  /* ── Hero ── */
+  .hero {
+    padding-block: 6rem 4rem;
+    border-bottom: 1px solid var(--color-border);
+    overflow: hidden;
+    position: relative;
+    background-color: var(--color-bg);
+    background-image:
+      linear-gradient(rgba(0, 0, 0, 0.65), rgba(0, 0, 0, 0.65)),
+      url('/images/background.png');
+    background-size: cover;
+    background-position: center;
+  }
+
+  .hero-inner {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 2rem;
+  }
+
+  .hero-content {
+    max-width: 600px;
+  }
+
+  .hero-eyebrow {
+    margin-bottom: 1.25rem;
+  }
+
+  .hero-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(3rem, 10vw, 6rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-block: 0 1.25rem;
+  }
+
+  .hero-tagline {
+    font-size: 1.1rem;
+    color: var(--color-muted);
+    max-width: 46ch;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+  }
+
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+
+  .hero-decoration {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    flex-shrink: 0;
+  }
+
+  .hero-deco-text {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(6rem, 16vw, 14rem);
+    line-height: 1;
+    color: var(--color-surface);
+    user-select: none;
+    letter-spacing: -0.04em;
+  }
+
+  @media (max-width: 768px) {
+    .hero-decoration { display: none; }
+    .hero { padding-block: 4rem 3rem; }
+  }
+
+  /* ── Platforms ── */
+  .platforms-section {
+    padding-block: 2.5rem;
+    border-bottom: 1px solid var(--color-border);
+    background: var(--color-surface);
+  }
+
+  .platforms-row {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+
+  .platform-chip {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.5rem 1rem;
+    border: 1px solid var(--color-border);
+    font-size: 0.85rem;
+    font-weight: 500;
+    color: var(--color-muted);
+  }
+
+  .platform-icon {
+    width: 1rem;
+    height: 1rem;
+    flex-shrink: 0;
+  }
+
+  /* ── Features ── */
+  .features-section {
+    padding-block: var(--space-section);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .features-section .section-label {
+    margin-bottom: 1rem;
+  }
+
+  .features-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-bottom: 3rem;
+  }
+
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1px;
+    border: 1px solid var(--color-border);
+  }
+
+  .feature-card {
+    padding: 1.75rem;
+    background: var(--color-surface);
+    display: flex;
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .feature-icon {
+    width: 1.5rem;
+    height: 1.5rem;
+    color: var(--color-accent);
+    flex-shrink: 0;
+  }
+
+  .feature-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 0.95rem;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+    color: var(--color-text);
+  }
+
+  .feature-desc {
+    font-size: 0.9rem;
+    line-height: 1.6;
+    color: var(--color-muted);
+  }
+
+  /* ── CTA ── */
+  .cta-section {
+    padding-block: var(--space-section);
+  }
+
+  .cta-inner {
+    display: flex;
+    align-items: flex-end;
+    justify-content: space-between;
+    gap: 3rem;
+    flex-wrap: wrap;
+  }
+
+  .cta-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(1.5rem, 3vw, 2.25rem);
+    text-transform: uppercase;
+    line-height: 1.1;
+    margin-block: 0.75rem 0.75rem;
+  }
+
+  .cta-desc {
+    color: var(--color-muted);
+    font-size: 0.95rem;
+    max-width: 44ch;
+    line-height: 1.6;
+  }
+
+  .cta-actions {
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 1rem;
+    flex-shrink: 0;
+  }
+
+  .cta-links {
+    display: flex;
+    gap: 1.25rem;
+  }
+
+  .cta-links a {
+    font-size: 0.8rem;
+    color: var(--color-muted);
+    transition: color 0.15s;
+  }
+
+  .cta-links a:hover {
+    color: var(--color-text);
+  }
+</style>
