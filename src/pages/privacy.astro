@@ -1,7 +1,7 @@
 ---
 import BaseLayout from '../layouts/BaseLayout.astro';
 
-const updated = '4 March 2026';
+const updated = '13 March 2026';
 ---
 
 <BaseLayout title="Privacy Policy" description="Privacy policy for Turn1Visuals — how data is handled on this website.">
@@ -63,6 +63,43 @@ const updated = '4 March 2026';
         <h2>Your rights (GDPR)</h2>
         <p>
           Under the GDPR you have the right to access, correct, or request deletion of any personal data held about you. As Turn1Visuals does not collect personal data directly, any such requests should be directed to the relevant third-party services listed above. For questions, contact <a href="mailto:info@turn1visuals.com">info@turn1visuals.com</a>.
+        </p>
+
+        <h2>T1V App</h2>
+        <p>
+          The T1V App is a personal Electron desktop application developed by Turn1Visuals for managing
+          live streaming and uploading Formula 1 content to social media platforms. This section describes
+          how data is handled within the T1V App specifically.
+        </p>
+
+        <h3>Data stored locally</h3>
+        <p>
+          All configuration data — including API credentials, OAuth access and refresh tokens, OBS
+          connection settings, and user preferences — is stored exclusively on your local device in the
+          application data directory (<code>%APPDATA%/t1v-app/config.json</code> on Windows).
+          No data is transmitted to servers operated by Turn1Visuals.
+        </p>
+
+        <h3>Third-party API integrations</h3>
+        <p>
+          The T1V App connects directly to the following third-party platforms on your behalf using
+          OAuth 2.0. Each platform's own privacy policy applies to data processed through their APIs:
+        </p>
+        <ul>
+          <li><a href="https://www.tiktok.com/legal/page/global/privacy-policy/en" target="_blank" rel="noopener noreferrer">TikTok Privacy Policy</a></li>
+          <li><a href="https://policies.google.com/privacy" target="_blank" rel="noopener noreferrer">Google / YouTube Privacy Policy</a></li>
+          <li><a href="https://www.twitch.tv/p/legal/privacy-notice/" target="_blank" rel="noopener noreferrer">Twitch Privacy Notice</a></li>
+        </ul>
+        <p>
+          OAuth tokens obtained from these platforms are stored locally and used only to perform actions
+          you initiate within the app (uploading videos, starting broadcasts, sending chat messages).
+          Tokens are never shared with third parties.
+        </p>
+
+        <h3>OBS WebSocket</h3>
+        <p>
+          The T1V App communicates with OBS Studio over a local WebSocket connection. No data from this
+          connection leaves your device.
         </p>
 
         <h2>Changes to this policy</h2>
