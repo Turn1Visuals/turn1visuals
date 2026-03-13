@@ -1,0 +1,193 @@
+---
+import BaseLayout from '../../layouts/BaseLayout.astro';
+
+const updated = 'March 2026';
+---
+
+<BaseLayout title="Terms of Service — T1V App" description="Terms of Service for the T1V App by Turn1Visuals.">
+
+  <section class="tos-section">
+    <div class="container tos-inner">
+
+      <header class="tos-header">
+        <p class="section-label">T1V App</p>
+        <h1 class="tos-title">Terms of Service</h1>
+        <p class="tos-meta">Last updated: {updated}</p>
+      </header>
+
+      <div class="prose">
+
+        <p>
+          These Terms of Service govern your use of the T1V App ("the App"), a personal desktop application
+          developed by Turn1Visuals for managing and publishing Formula 1 content across social media platforms
+          including TikTok, YouTube, and Twitch.
+        </p>
+
+        <h2>1. Acceptance of Terms</h2>
+        <p>
+          By using the T1V App, you agree to these Terms of Service. If you do not agree, do not use the App.
+        </p>
+
+        <h2>2. Description of the App</h2>
+        <p>
+          The T1V App is a personal-use Electron desktop application that provides the following functionality:
+        </p>
+        <ul>
+          <li>Uploading video content to TikTok, YouTube, and other platforms</li>
+          <li>Managing live stream sessions via OBS integration</li>
+          <li>Sending messages to live chat on connected platforms</li>
+          <li>Organizing workflow tools and launcher shortcuts</li>
+        </ul>
+        <p>
+          The App is intended solely for personal use by the owner of the Turn1Visuals account and is not
+          distributed to the public.
+        </p>
+
+        <h2>3. Use of Third-Party APIs</h2>
+        <p>
+          The App integrates with third-party platforms including TikTok, YouTube, and Twitch via their
+          respective official APIs. Use of these integrations is subject to each platform's own Terms of Service:
+        </p>
+        <ul>
+          <li><a href="https://www.tiktok.com/legal/page/global/terms-of-service/en" target="_blank" rel="noopener noreferrer">TikTok Terms of Service</a></li>
+          <li><a href="https://www.youtube.com/t/terms" target="_blank" rel="noopener noreferrer">YouTube Terms of Service</a></li>
+          <li><a href="https://www.twitch.tv/p/legal/terms-of-service/" target="_blank" rel="noopener noreferrer">Twitch Terms of Service</a></li>
+        </ul>
+
+        <h2>4. Data and Privacy</h2>
+        <p>
+          The App does not collect, store, or transmit any personal data to external servers operated by
+          Turn1Visuals. All configuration data (API credentials, OAuth tokens, settings) is stored locally
+          on the user's device in the application data directory.
+        </p>
+        <p>
+          Authentication with third-party platforms uses OAuth 2.0. Access tokens are stored locally and
+          used only to communicate directly with the respective platform's API on behalf of the user.
+        </p>
+
+        <h2>5. Content Responsibility</h2>
+        <p>
+          The user is solely responsible for all content uploaded or streamed through the App. Turn1Visuals
+          does not review, moderate, or take responsibility for any content published via the App.
+          All content must comply with the terms and community guidelines of the target platforms.
+        </p>
+
+        <h2>6. Intellectual Property</h2>
+        <p>
+          The T1V App and its source code are the property of Turn1Visuals. Unauthorized copying,
+          distribution, or modification of the App is prohibited.
+        </p>
+
+        <h2>7. Disclaimer of Warranties</h2>
+        <p>
+          The App is provided "as is" without warranties of any kind. Turn1Visuals makes no guarantees
+          regarding uptime, accuracy, or fitness for any particular purpose. Use of the App is at your
+          own risk.
+        </p>
+
+        <h2>8. Limitation of Liability</h2>
+        <p>
+          To the maximum extent permitted by law, Turn1Visuals shall not be liable for any indirect,
+          incidental, or consequential damages arising from the use of the App or its integrations
+          with third-party platforms.
+        </p>
+
+        <h2>9. Changes to These Terms</h2>
+        <p>
+          These Terms may be updated from time to time. Continued use of the App after changes are posted
+          constitutes acceptance of the updated Terms.
+        </p>
+
+        <h2>Contact</h2>
+        <p>
+          For questions about these Terms, contact Turn1Visuals at
+          <a href="mailto:info@turn1visuals.com">info@turn1visuals.com</a>.
+        </p>
+
+      </div>
+    </div>
+  </section>
+
+</BaseLayout>
+
+<style>
+  .tos-section {
+    padding-block: var(--space-section);
+  }
+
+  .tos-inner {
+    max-width: 720px;
+  }
+
+  .tos-header {
+    margin-bottom: 3rem;
+  }
+
+  .tos-title {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: clamp(2rem, 5vw, 3.5rem);
+    text-transform: uppercase;
+    line-height: 1;
+    margin-block: 0.75rem 0.5rem;
+  }
+
+  .tos-meta {
+    font-size: 0.85rem;
+    color: var(--color-muted);
+  }
+
+  /* ── Prose ── */
+  .prose {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    font-size: 0.95rem;
+    line-height: 1.7;
+    color: var(--color-muted);
+  }
+
+  .prose h2 {
+    font-family: var(--font-display);
+    font-weight: 700;
+    font-size: 1rem;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    color: var(--color-text);
+    margin-top: 1.5rem;
+    padding-top: 1.5rem;
+    border-top: 1px solid var(--color-border);
+  }
+
+  .prose h2:first-of-type {
+    margin-top: 0;
+    padding-top: 0;
+    border-top: none;
+  }
+
+  .prose ul {
+    list-style: none;
+    padding: 0;
+    display: flex;
+    flex-direction: column;
+    gap: 0.4rem;
+  }
+
+  .prose ul li {
+    padding-left: 1.2rem;
+    position: relative;
+  }
+
+  .prose ul li::before {
+    content: '—';
+    position: absolute;
+    left: 0;
+    color: var(--color-accent);
+  }
+
+  .prose a {
+    color: var(--color-accent);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+</style>
