@@ -20,122 +20,306 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <a href="/f1/results" class="sub-nav-link sub-nav-link--active">Results</a>
     </nav>
 
-    <div class="results-layout">
-      <!-- Race list sidebar -->
-      <aside class="race-list" id="raceList">
-        {Array.from({length: 8}).map(() => (
-          <div class="race-list-item skeleton-item">
-            <div class="skeleton sk-round"></div>
-            <div class="skeleton sk-name"></div>
-          </div>
-        ))}
-      </aside>
-
-      <!-- Selected race results -->
-      <main class="race-detail" id="raceDetail">
-        <div class="select-prompt">
-          <p>Select a race from the list to view results.</p>
-        </div>
-      </main>
+    <div class="event-selector">
+      <select id="yearSelect">
+        <option value="2026">2026</option>
+        <option value="2025">2025</option>
+        <option value="2024">2024</option>
+        <option value="2023">2023</option>
+      </select>
+      <select id="eventSelect" disabled>
+        <option>Loading schedule…</option>
+      </select>
     </div>
+
+    <div id="eventDetail" class="event-detail"></div>
 
   </div>
 
 </BaseLayout>
 
 <script>
-  const BASE = 'https://api.jolpi.ca/ergast/f1';
-  let allRaces: any[] = [];
+  const JOLPICA  = 'https://api.jolpi.ca/ergast/f1';
+  const OPENF1   = 'https://api.openf1.org/v1';
+
+  let allRaces:    any[] = [];
+  let of1Meetings: any[] = [];
   let selectedRound: string | null = null;
+  let selectedYear: string = new Date().getFullYear().toString();
+  const cache: Record<string, any> = {};
 
-  async function loadSeason() {
-    const listEl = document.getElementById('raceList');
-    if (!listEl) return;
+  // Session name as returned by OpenF1 → display label
+  const SESSION_LABELS: Record<string, string> = {
+    'Practice 1':         'FP1',
+    'Practice 2':         'FP2',
+    'Practice 3':         'FP3',
+    'Qualifying':         'Qualifying',
+    'Sprint':             'Sprint',
+    'Sprint Qualifying':  'Sprint Quali',
+    'Sprint Shootout':    'Sprint Quali',
+    'Race':               'Race',
+  };
 
-    const res = await fetch(`${BASE}/current/results.json?limit=30`).catch(() => null);
+  // Session display order
+  const SESSION_ORDER = ['Practice 1','Practice 2','Practice 3','Sprint Qualifying','Sprint Shootout','Sprint','Qualifying','Race'];
 
-    if (!res || !res.ok) {
-      listEl.innerHTML = '<p class="no-data">Could not load race calendar.</p>';
-      return;
-    }
-
-    const data = await res.json();
-    allRaces = data.MRData?.RaceTable?.Races ?? [];
-
-    if (allRaces.length === 0) {
-      listEl.innerHTML = '<p class="no-data">No races available yet for this season.</p>';
-      return;
-    }
-
-    listEl.innerHTML = allRaces.map(race => `
-      <button
-        class="race-list-item"
-        data-round="${race.round}"
-        onclick="selectRace('${race.round}')"
-      >
-        <span class="race-item-round">R${race.round}</span>
-        <div class="race-item-info">
-          <span class="race-item-name">${race.raceName.replace(' Grand Prix', ' GP')}</span>
-          <span class="race-item-date">${new Date(race.date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</span>
-        </div>
-      </button>
-    `).join('');
-
-    // Auto-select from query param, or fall back to most recent race
-    const params = new URLSearchParams(window.location.search);
-    const roundParam = params.get('round');
-    const target = roundParam ? allRaces.find(r => r.round === roundParam) : null;
-    selectRace((target ?? allRaces[allRaces.length - 1]).round);
+  function formatDuration(seconds: number | null): string {
+    if (!seconds) return '—';
+    const mins = Math.floor(seconds / 60);
+    const secs = (seconds % 60).toFixed(3).padStart(6, '0');
+    return mins > 0 ? `${mins}:${secs}` : `${secs}`;
   }
 
-  (window as any).selectRace = function(round: string) {
+  function formatGap(gap: number | string | null): string {
+    if (gap === null || gap === undefined || gap === 0) return '—';
+    if (typeof gap === 'string') return gap;
+    return `+${gap.toFixed(3)}`;
+  }
+
+  async function get<T>(url: string, timeout = 10000, retry = true): Promise<T | null> {
+    const controller = new AbortController();
+    const id = setTimeout(() => controller.abort(), timeout);
+    try {
+      const res = await fetch(url, { signal: controller.signal });
+      clearTimeout(id);
+      if (res.status === 429 && retry) {
+        await new Promise(r => setTimeout(r, 1500));
+        return get<T>(url, timeout, false);
+      }
+      return res.ok ? await res.json() : null;
+    } catch {
+      clearTimeout(id);
+      return null;
+    }
+  }
+
+  // ── Season schedule (Jolpica) ────────────────────────────────────────────
+
+  async function loadSeason() {
+    const yearEl   = document.getElementById('yearSelect')  as HTMLSelectElement;
+    const selectEl = document.getElementById('eventSelect') as HTMLSelectElement;
+    if (!selectEl || !yearEl) return;
+
+    selectedYear = yearEl.value;
+    selectEl.disabled = true;
+    selectEl.innerHTML = '<option>Loading…</option>';
+    document.getElementById('eventDetail')!.innerHTML = '';
+
+    const [scheduleData, meetingsData] = await Promise.all([
+      get<any>(`${JOLPICA}/${selectedYear}.json`),
+      get<any[]>(`${OPENF1}/meetings?year=${selectedYear}`),
+    ]);
+
+    allRaces    = scheduleData?.MRData?.RaceTable?.Races ?? [];
+    of1Meetings = meetingsData ?? [];
+
+    if (allRaces.length === 0) {
+      selectEl.innerHTML = '<option>No races available yet</option>';
+      return;
+    }
+
+    selectEl.innerHTML = allRaces.map(race =>
+      `<option value="${race.round}">R${race.round} — ${race.raceName.replace(' Grand Prix', ' GP')}</option>`
+    ).join('');
+    selectEl.disabled = false;
+
+    // Only use query param on initial load (current year)
+    const params = new URLSearchParams(window.location.search);
+    const roundParam = params.get('round');
+    const today = new Date(); today.setHours(0, 0, 0, 0);
+    let targetRound: string;
+    if (roundParam && selectedYear === new Date().getFullYear().toString() && allRaces.find((r: any) => r.round === roundParam)) {
+      targetRound = roundParam;
+    } else {
+      const past = allRaces.filter((r: any) => new Date(r.date) <= today);
+      targetRound = (past.length > 0 ? past[past.length - 1] : allRaces[allRaces.length - 1]).round;
+    }
+
+    selectEl.value = targetRound;
+    selectRound(targetRound);
+    selectEl.onchange = () => selectRound(selectEl.value);
+  }
+
+  // ── Event selection ──────────────────────────────────────────────────────
+
+  async function selectRound(round: string) {
     selectedRound = round;
-    const race = allRaces.find(r => r.round === round);
+    const race = allRaces.find((r: any) => r.round === round);
     if (!race) return;
 
-    // Highlight in list
-    document.querySelectorAll('.race-list-item').forEach(el => el.classList.remove('race-list-item--active'));
-    document.querySelector(`[data-round="${round}"]`)?.classList.add('race-list-item--active');
-
-    const detailEl = document.getElementById('raceDetail');
+    const detailEl = document.getElementById('eventDetail');
     if (!detailEl) return;
 
-    const results = race.Results ?? [];
     detailEl.innerHTML = `
       <div class="race-detail-header">
         <span class="race-detail-round">Round ${race.round} · ${race.season}</span>
         <h2 class="race-detail-title">${race.raceName}</h2>
-        <p class="race-detail-circuit">${race.Circuit.circuitName} · ${race.Circuit.Location.locality}, ${race.Circuit.Location.country}</p>
-        <p class="race-detail-date">${new Date(race.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+        <p class="race-detail-meta">${race.Circuit.circuitName} · ${race.Circuit.Location.locality}, ${race.Circuit.Location.country}</p>
+        <p class="race-detail-meta">${new Date(race.date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
       </div>
-      ${results.length === 0
-        ? '<p class="no-data">Results not yet available.</p>'
-        : `<div class="results-table">
-            <div class="results-header">
-              <span>Pos</span><span>Driver</span><span>Team</span><span>Laps</span><span>Time / Status</span><span>Pts</span>
-            </div>
-            ${results.map((r: any) => `
-              <div class="result-row${r.position === '1' ? ' result-row--winner' : ''}">
-                <span class="res-pos">${r.position}</span>
-                <div class="res-driver">
-                  <span class="res-driver-name">${r.Driver.givenName} ${r.Driver.familyName}</span>
-                  <span class="res-driver-code">${r.Driver.code ?? ''}</span>
-                </div>
-                <span class="res-team">${r.Constructor.name}</span>
-                <span class="res-laps">${r.laps}</span>
-                <span class="res-time">${r.Time?.time ?? r.status}</span>
-                <span class="res-pts">${r.points}</span>
-              </div>
-            `).join('')}
-          </div>`
-      }
+      <div id="sessionTabsWrap">
+        <div class="session-loading">Loading sessions…</div>
+      </div>
+      <div class="session-content" id="sessionContent"></div>
     `;
+
+    loadSessions(round, race.raceName);
+  }
+
+  // ── Load OpenF1 sessions for this meeting ────────────────────────────────
+
+  async function loadSessions(round: string, raceName: string) {
+    if (selectedRound !== round) return;
+    const tabsWrap = document.getElementById('sessionTabsWrap');
+    if (!tabsWrap) return;
+
+    // Find matching OpenF1 meeting
+    const meeting = of1Meetings.find((m: any) =>
+      m.meeting_name === raceName ||
+      m.meeting_name?.replace(' Grand Prix', '') === raceName.replace(' Grand Prix', '')
+    );
+
+    if (!meeting) {
+      tabsWrap.innerHTML = '<p class="no-data">Session data not yet available for this event.</p>';
+      return;
+    }
+
+    const cacheKey = `sessions_${meeting.meeting_key}`;
+    let sessions: any[];
+    if (cache[cacheKey]) {
+      sessions = cache[cacheKey];
+    } else {
+      const data = await get<any[]>(`${OPENF1}/sessions?meeting_key=${meeting.meeting_key}`);
+      sessions = data ?? [];
+      cache[cacheKey] = sessions;
+    }
+
+    if (selectedRound !== round) return;
+
+    // Sort sessions chronologically using SESSION_ORDER
+    sessions = sessions
+      .filter((s: any) => SESSION_LABELS[s.session_name])
+      .sort((a: any, b: any) => SESSION_ORDER.indexOf(a.session_name) - SESSION_ORDER.indexOf(b.session_name));
+
+    if (sessions.length === 0) {
+      tabsWrap.innerHTML = '<p class="no-data">No session data available yet.</p>';
+      return;
+    }
+
+    tabsWrap.innerHTML = `
+      <nav class="session-tabs">
+        ${sessions.map((s: any, i: number) => `
+          <button
+            class="session-tab${i === sessions.length - 1 ? ' session-tab--active' : ''}"
+            data-session-key="${s.session_key}"
+            data-session-name="${s.session_name}"
+            onclick="switchTab(${s.session_key}, '${s.session_name}')"
+          >${SESSION_LABELS[s.session_name] ?? s.session_name}</button>
+        `).join('')}
+      </nav>
+    `;
+
+    // Auto-load the last session (most recent)
+    const last = sessions[sessions.length - 1];
+    loadSessionData(round, last.session_key, last.session_name);
+  }
+
+  // ── Load session results ─────────────────────────────────────────────────
+
+  async function loadSessionData(round: string, sessionKey: number, sessionName: string) {
+    const contentEl = document.getElementById('sessionContent');
+    if (!contentEl || selectedRound !== round) return;
+
+    const cacheKey = `result_${sessionKey}`;
+    let merged: any[];
+
+    if (cache[cacheKey]) {
+      merged = cache[cacheKey];
+    } else {
+      contentEl.innerHTML = '<div class="session-loading">Loading…</div>';
+
+      const [results, drivers] = await Promise.all([
+        get<any[]>(`${OPENF1}/session_result?session_key=${sessionKey}`),
+        get<any[]>(`${OPENF1}/drivers?session_key=${sessionKey}`),
+      ]);
+
+      if (!results) {
+        contentEl.innerHTML = '<p class="no-data">Could not load session data.</p>';
+        return;
+      }
+
+      // Build driver lookup by driver_number (drivers may be unavailable for some sessions)
+      const driverMap: Record<number, any> = {};
+      for (const d of (drivers ?? [])) driverMap[d.driver_number] = d;
+
+      merged = results
+        .map((r: any) => ({ ...r, driver: driverMap[r.driver_number] ?? null }))
+        .sort((a: any, b: any) => (a.position ?? 99) - (b.position ?? 99));
+
+      cache[cacheKey] = merged;
+    }
+
+    if (selectedRound !== round) return;
+    contentEl.innerHTML = renderResults(merged, sessionName);
+  }
+
+  (window as any).switchTab = function(sessionKey: number, sessionName: string) {
+    if (!selectedRound) return;
+    document.querySelectorAll('.session-tab').forEach(el => el.classList.remove('session-tab--active'));
+    document.querySelector(`[data-session-key="${sessionKey}"]`)?.classList.add('session-tab--active');
+    loadSessionData(selectedRound, sessionKey, sessionName);
   };
+
+  // ── Render ───────────────────────────────────────────────────────────────
+
+  function renderResults(rows: any[], sessionName: string): string {
+    if (rows.length === 0) return '<p class="no-data">Results not yet available.</p>';
+
+    const isRace = sessionName === 'Race' || sessionName === 'Sprint';
+
+    return `
+      <div class="results-table">
+        <div class="results-header">
+          <span>Pos</span>
+          <span>Driver</span>
+          <span>Team</span>
+          <span>${isRace ? 'Laps' : 'Best Lap'}</span>
+          <span>${isRace ? 'Gap' : 'Gap'}</span>
+        </div>
+        ${rows.map((r: any) => {
+          const driver  = r.driver;
+          const color   = driver?.team_colour ? `#${driver.team_colour}` : 'var(--color-border)';
+          const name    = driver ? `${driver.first_name} ${driver.last_name}` : `#${r.driver_number}`;
+          const acronym = driver?.name_acronym ?? '';
+          const team    = driver?.team_name ?? '—';
+          const pos     = r.dnf ? 'DNF' : r.dns ? 'DNS' : r.dsq ? 'DSQ' : (r.position ?? '—');
+          const isFirst = r.position === 1;
+
+          return `
+            <div class="result-row${isFirst ? ' result-row--winner' : ''}" style="border-left-color:${color}">
+              <span class="res-pos${r.dnf || r.dns || r.dsq ? ' res-pos--out' : ''}">${pos}</span>
+              <div class="res-driver">
+                <span class="res-driver-name">${name}</span>
+                <span class="res-driver-code">${acronym}</span>
+              </div>
+              <span class="res-team">${team}</span>
+              <span class="res-time">${isRace ? (r.number_of_laps ?? '—') : formatDuration(r.duration)}</span>
+              <span class="res-time">${isFirst ? '—' : formatGap(r.gap_to_leader)}</span>
+            </div>
+          `;
+        }).join('')}
+      </div>
+    `;
+  }
+
+  const yearEl = document.getElementById('yearSelect') as HTMLSelectElement;
+  yearEl.value = new Date().getFullYear().toString();
+  yearEl.addEventListener('change', loadSeason);
 
   loadSeason();
 </script>
 
-<style>
+<style is:global>
   .page-header {
     padding-block: 4rem 2rem;
     border-bottom: 1px solid var(--color-border);
@@ -155,7 +339,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .sub-nav {
     display: flex;
     border-bottom: 1px solid var(--color-border);
-    margin-bottom: 3rem;
+    margin-bottom: 2.5rem;
   }
 
   .sub-nav-link {
@@ -174,89 +358,39 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
   .sub-nav-link:hover { color: var(--color-text); }
   .sub-nav-link--active { color: var(--color-text); border-bottom-color: var(--color-accent); }
 
-  .results-layout {
-    display: grid;
-    grid-template-columns: 260px 1fr;
-    gap: 2rem;
-    align-items: start;
+  /* Dropdowns */
+  .event-selector {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 2.5rem;
+    flex-wrap: wrap;
   }
 
-  /* Race list */
-  .race-list {
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    position: sticky;
-    top: 5rem;
-    max-height: calc(100vh - 6rem);
-    overflow-y: auto;
-  }
-
-  .race-list-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.75rem 1rem;
-    background: var(--color-surface);
+  .event-selector select {
+    appearance: none;
+    background: var(--color-surface) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8' viewBox='0 0 12 8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%23888' stroke-width='1.5' fill='none' stroke-linecap='round'/%3E%3C/svg%3E") no-repeat right 1rem center;
     border: 1px solid var(--color-border);
-    cursor: pointer;
-    text-align: left;
-    width: 100%;
-    color: var(--color-muted);
-    transition: color 0.15s, border-color 0.15s;
-  }
-
-  .race-list-item:hover { color: var(--color-text); border-color: var(--color-muted); }
-  .race-list-item--active { color: var(--color-text); border-color: var(--color-accent); border-left-width: 3px; }
-
-  .race-item-round {
+    color: var(--color-text);
     font-family: var(--font-display);
-    font-size: 0.7rem;
-    font-weight: 700;
-    letter-spacing: 0.08em;
-    color: var(--color-accent);
-    min-width: 2rem;
-  }
-
-  .race-item-info { flex: 1; }
-
-  .race-item-name {
-    font-family: var(--font-display);
-    font-size: 0.85rem;
+    font-size: 0.9rem;
     font-weight: 600;
+    letter-spacing: 0.05em;
     text-transform: uppercase;
-    letter-spacing: 0.04em;
-    display: block;
-    line-height: 1.2;
+    padding: 0.75rem 2.5rem 0.75rem 1rem;
+    cursor: pointer;
+    transition: border-color 0.15s;
   }
 
-  .race-item-date {
-    font-size: 0.72rem;
-    color: var(--color-muted);
-  }
+  #yearSelect  { width: 120px; flex-shrink: 0; }
+  #eventSelect { flex: 1; min-width: 200px; max-width: 420px; }
 
-  /* Skeleton */
-  .skeleton-item {
-    display: flex;
-    align-items: center;
-    gap: 0.75rem;
-    padding: 0.875rem 1rem;
-    background: var(--color-surface);
-    border: 1px solid var(--color-border);
-  }
+  .event-selector select:hover,
+  .event-selector select:focus { border-color: var(--color-accent); outline: none; }
+  .event-selector select:disabled { opacity: 0.5; cursor: default; }
 
-  .sk-round { width: 2rem; height: 1rem; }
-  .sk-name  { flex: 1; height: 1.2rem; }
-
-  /* Race detail */
-  .select-prompt {
-    padding: 3rem;
-    color: var(--color-muted);
-    text-align: center;
-  }
-
+  /* Event detail header */
   .race-detail-header {
-    margin-bottom: 2rem;
+    margin-bottom: 1.5rem;
     padding-bottom: 1.5rem;
     border-bottom: 1px solid var(--color-border);
   }
@@ -279,15 +413,41 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     line-height: 1.1;
   }
 
-  .race-detail-circuit { font-size: 0.85rem; color: var(--color-muted); }
-  .race-detail-date    { font-size: 0.8rem; color: var(--color-muted); margin-top: 0.25rem; }
+  .race-detail-meta { font-size: 0.85rem; color: var(--color-muted); margin-top: 0.2rem; }
+
+  /* Session tabs */
+  .session-tabs {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 2px;
+    margin-bottom: 1.25rem;
+  }
+
+  .session-tab {
+    font-family: var(--font-display);
+    font-size: 0.8rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+    padding: 0.5rem 1.1rem;
+    background: var(--color-surface);
+    border: 1px solid var(--color-border);
+    color: var(--color-muted);
+    cursor: pointer;
+    transition: color 0.15s, border-color 0.15s;
+  }
+
+  .session-tab:hover { color: var(--color-text); border-color: var(--color-muted); }
+  .session-tab--active { color: var(--color-text); border-color: var(--color-accent); border-bottom-width: 2px; }
+
+  .session-loading { padding: 2rem; color: var(--color-muted); font-size: 0.85rem; }
 
   /* Results table */
   .results-table { display: flex; flex-direction: column; gap: 2px; }
 
   .results-header {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 4rem 1fr 4rem;
+    grid-template-columns: 3rem 1fr 1fr 8rem 8rem;
     padding: 0.5rem 1rem;
     font-family: var(--font-display);
     font-size: 0.7rem;
@@ -299,16 +459,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .result-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 4rem 1fr 4rem;
+    grid-template-columns: 3rem 1fr 1fr 8rem 8rem;
     align-items: center;
     padding: 0.75rem 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
+    border-left-width: 3px;
     transition: border-color 0.15s;
   }
 
-  .result-row:hover { border-color: var(--color-muted); }
-  .result-row--winner { border-left: 3px solid var(--color-accent); }
+  .result-row:hover { filter: brightness(1.1); }
+  .result-row--winner .res-pos { color: var(--color-accent); }
 
   .res-pos {
     font-family: var(--font-display);
@@ -317,9 +478,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     color: var(--color-muted);
   }
 
-  .result-row--winner .res-pos { color: var(--color-accent); }
+  .res-pos--out { color: var(--color-muted); font-size: 0.75rem; }
 
-  .res-driver { display: flex; align-items: baseline; gap: 0.5rem; }
+  .res-driver { display: flex; align-items: baseline; gap: 0.5rem; overflow: hidden; }
 
   .res-driver-name {
     font-family: var(--font-display);
@@ -327,6 +488,9 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-size: 0.9rem;
     text-transform: uppercase;
     letter-spacing: 0.03em;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .res-driver-code {
@@ -335,21 +499,18 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     font-weight: 700;
     color: var(--color-muted);
     letter-spacing: 0.06em;
+    flex-shrink: 0;
   }
 
-  .res-team   { font-size: 0.8rem; color: var(--color-muted); }
-  .res-laps   { font-size: 0.85rem; color: var(--color-muted); }
-  .res-time   { font-size: 0.82rem; font-family: 'Inter', monospace; color: var(--color-muted); }
-  .res-pts    { font-family: 'Inter', monospace; font-weight: 600; font-size: 0.9rem; text-align: right; }
+  .res-team { font-size: 0.8rem; color: var(--color-muted); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .res-time { font-size: 0.82rem; font-family: 'Inter', monospace; color: var(--color-muted); }
 
   .no-data { color: var(--color-muted); font-size: 0.85rem; padding: 1.5rem; }
 
-  @media (max-width: 900px) {
-    .results-layout { grid-template-columns: 1fr; }
-    .race-list { position: static; max-height: none; flex-direction: row; overflow-x: auto; gap: 0.5rem; }
-    .race-list-item { flex-shrink: 0; min-width: 120px; }
-    .results-header, .result-row { grid-template-columns: 3rem 1fr 1fr 4rem; }
-    .results-header span:nth-child(4), .results-header span:nth-child(5),
-    .res-laps, .res-time { display: none; }
+  @media (max-width: 700px) {
+    .event-selector select { max-width: 100%; }
+    .results-header, .result-row { grid-template-columns: 3rem 1fr 1fr; }
+    .results-header span:nth-child(4), .results-header span:nth-child(5) { display: none; }
+    .res-time { display: none; }
   }
 </style>

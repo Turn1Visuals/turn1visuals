@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="F1 Drivers" description="Current F1 driver standings and driver profiles.">
+<BaseLayout title="F1 Drivers" description="Current F1 driver standings.">
 
   <div class="page-header">
     <div class="container">
@@ -20,17 +20,16 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <a href="/f1/results" class="sub-nav-link">Results</a>
     </nav>
 
-    <!-- Driver Standings -->
     <section class="section">
       <p class="section-label" style="margin-bottom:1rem">Championship Standings</p>
       <div class="standings-table" id="driverStandings">
-        {Array.from({length: 20}).map((_, i) => (
+        {Array.from({length: 20}).map(() => (
           <div class="standings-row skeleton-row">
             <div class="skeleton sk-pos"></div>
+            <div class="skeleton sk-avatar"></div>
             <div class="skeleton sk-name"></div>
             <div class="skeleton sk-team"></div>
             <div class="skeleton sk-pts"></div>
-            <div class="skeleton sk-wins"></div>
           </div>
         ))}
       </div>
@@ -41,56 +40,81 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
-  async function loadDrivers() {
-    const BASE = 'https://api.jolpi.ca/ergast/f1';
+  const OPENF1 = 'https://api.openf1.org/v1';
 
-    const res = await fetch(`${BASE}/current/driverStandings.json?limit=30`).catch(() => null);
+  async function get<T>(url: string): Promise<T | null> {
+    try {
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch { return null; }
+  }
+
+  async function loadDrivers() {
     const el = document.getElementById('driverStandings');
     if (!el) return;
 
-    if (!res || !res.ok) {
-      el.innerHTML = '<p class="no-data">Could not load driver standings. Try refreshing.</p>';
+    const [standings, drivers] = await Promise.all([
+      get<any[]>(`${OPENF1}/championship_drivers?session_key=latest`),
+      get<any[]>(`${OPENF1}/drivers?session_key=latest`),
+    ]);
+
+    if (!standings || !drivers) {
+      el.innerHTML = '<p class="no-data">Could not load driver standings.</p>';
       return;
     }
 
-    const data = await res.json();
-    const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.DriverStandings ?? [];
+    // Build driver info map by driver_number
+    const driverMap: Record<number, any> = {};
+    for (const d of drivers) driverMap[d.driver_number] = d;
 
-    if (standings.length === 0) {
+    // Sort by position
+    const sorted = standings
+      .filter((s: any) => s.position_current)
+      .sort((a: any, b: any) => a.position_current - b.position_current);
+
+    if (sorted.length === 0) {
       el.innerHTML = '<p class="no-data">Season standings not available yet.</p>';
       return;
     }
 
     el.innerHTML = `
       <div class="table-header">
-        <span class="th-pos">Pos</span>
+        <span>Pos</span>
         <span class="th-driver">Driver</span>
-        <span class="th-team">Team</span>
-        <span class="th-pts">Points</span>
-        <span class="th-wins">Wins</span>
+        <span>Team</span>
+        <span>Pts</span>
       </div>
-      ${standings.map((s: any, idx: number) => `
-        <div class="standings-row${idx === 0 ? ' row-leader' : ''}">
-          <span class="td-pos">${s.position}</span>
-          <div class="td-driver">
-            <span class="driver-number">${s.Driver.permanentNumber ?? '—'}</span>
-            <div>
-              <span class="driver-name">${s.Driver.givenName} ${s.Driver.familyName}</span>
-              <span class="driver-nat">${s.Driver.nationality}</span>
+      ${sorted.map((s: any) => {
+        const d = driverMap[s.driver_number];
+        const color  = d?.team_colour ? `#${d.team_colour}` : 'var(--color-border)';
+        const name   = d ? `${d.first_name} ${d.last_name}` : `#${s.driver_number}`;
+        const code   = d?.name_acronym ?? '';
+        const team   = d?.team_name ?? '—';
+        const img    = d?.headshot_url ?? '';
+        const isFirst = s.position_current === 1;
+
+        return `
+          <div class="standings-row${isFirst ? ' row-leader' : ''}" style="border-left-color:${color}">
+            <span class="td-pos">${s.position_current}</span>
+            <div class="td-driver">
+              ${img ? `<img class="driver-avatar" src="${img}" alt="${name}" loading="lazy">` : '<div class="driver-avatar driver-avatar--empty"></div>'}
+              <div>
+                <span class="driver-name">${name}</span>
+                <span class="driver-code">${code}</span>
+              </div>
             </div>
+            <span class="td-team">${team}</span>
+            <span class="td-pts">${s.points_current}</span>
           </div>
-          <span class="td-team">${s.Constructors[0]?.name ?? '—'}</span>
-          <span class="td-pts">${s.points}</span>
-          <span class="td-wins">${s.wins}</span>
-        </div>
-      `).join('')}
+        `;
+      }).join('')}
     `;
   }
 
   loadDrivers();
 </script>
 
-<style>
+<style is:global>
   .page-header {
     padding-block: 4rem 2rem;
     border-bottom: 1px solid var(--color-border);
@@ -131,13 +155,11 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .section { margin-bottom: 4rem; }
 
-  /* Table */
   .standings-table { display: flex; flex-direction: column; gap: 2px; }
 
   .table-header {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
-    gap: 0;
+    grid-template-columns: 3rem 1fr 1fr 6rem;
     padding: 0.5rem 1rem;
     font-family: var(--font-display);
     font-size: 0.7rem;
@@ -149,17 +171,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .standings-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
+    grid-template-columns: 3rem 1fr 1fr 6rem;
     align-items: center;
-    gap: 0;
-    padding: 0.75rem 1rem;
+    padding: 0.6rem 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    transition: border-color 0.15s;
+    border-left-width: 3px;
+    transition: filter 0.15s;
   }
 
-  .standings-row:hover { border-color: var(--color-muted); }
-  .row-leader { border-left: 3px solid var(--color-accent); }
+  .standings-row:hover { filter: brightness(1.1); }
+  .row-leader .td-pos { color: var(--color-accent); }
 
   .td-pos {
     font-family: var(--font-display);
@@ -172,15 +194,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     display: flex;
     align-items: center;
     gap: 0.75rem;
+    overflow: hidden;
   }
 
-  .driver-number {
-    font-family: var(--font-display);
-    font-weight: 700;
-    font-size: 1.2rem;
-    color: var(--color-accent);
-    min-width: 2rem;
-    line-height: 1;
+  .driver-avatar {
+    width: 40px;
+    height: 40px;
+    object-fit: cover;
+    object-position: top center;
+    flex-shrink: 0;
+    border-radius: 2px;
+    background: var(--color-border);
+  }
+
+  .driver-avatar--empty {
+    width: 40px;
+    height: 40px;
+    flex-shrink: 0;
+    background: var(--color-border);
+    border-radius: 2px;
   }
 
   .driver-name {
@@ -191,17 +223,25 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     letter-spacing: 0.04em;
     display: block;
     line-height: 1.2;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
-  .driver-nat {
-    font-size: 0.72rem;
+  .driver-code {
+    font-family: var(--font-display);
+    font-size: 0.7rem;
+    font-weight: 700;
     color: var(--color-muted);
-    display: block;
+    letter-spacing: 0.06em;
   }
 
   .td-team {
     font-size: 0.85rem;
     color: var(--color-muted);
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 
   .td-pts {
@@ -211,37 +251,30 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     text-align: right;
   }
 
-  .td-wins {
-    font-family: 'Inter', monospace;
-    font-size: 0.9rem;
-    color: var(--color-muted);
-    text-align: right;
-  }
-
   /* Skeleton */
   .skeleton-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
+    grid-template-columns: 3rem 40px 1fr 1fr 6rem;
     gap: 0.75rem;
-    padding: 0.875rem 1rem;
+    padding: 0.75rem 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     align-items: center;
   }
 
-  .sk-pos   { width: 1.5rem; height: 1.4rem; }
-  .sk-name  { height: 1.4rem; }
-  .sk-team  { height: 1rem; }
-  .sk-pts   { height: 1.4rem; }
-  .sk-wins  { height: 1rem; }
+  .sk-pos    { width: 1.5rem; height: 1.4rem; }
+  .sk-avatar { width: 40px; height: 40px; flex-shrink: 0; }
+  .sk-name   { height: 1.4rem; }
+  .sk-team   { height: 1rem; }
+  .sk-pts    { height: 1.4rem; }
 
   .no-data { color: var(--color-muted); font-size: 0.85rem; padding: 1.5rem; }
 
   @media (max-width: 640px) {
     .table-header { display: none; }
-    .standings-row, .skeleton-row {
-      grid-template-columns: 2.5rem 1fr 5rem;
-    }
-    .td-team, .td-wins, .sk-team, .sk-wins { display: none; }
+    .standings-row { grid-template-columns: 3rem 1fr 5rem; }
+    .td-team { display: none; }
+    .skeleton-row { grid-template-columns: 3rem 40px 1fr 5rem; }
+    .sk-team { display: none; }
   }
 </style>

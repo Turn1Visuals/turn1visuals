@@ -2,7 +2,7 @@
 import BaseLayout from '../../layouts/BaseLayout.astro';
 ---
 
-<BaseLayout title="F1 Teams" description="Current F1 constructor standings and team profiles.">
+<BaseLayout title="F1 Teams" description="Current F1 constructor standings.">
 
   <div class="page-header">
     <div class="container">
@@ -20,17 +20,14 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
       <a href="/f1/results" class="sub-nav-link">Results</a>
     </nav>
 
-    <!-- Constructor Standings -->
     <section class="section">
       <p class="section-label" style="margin-bottom:1rem">Constructor Standings</p>
       <div class="standings-table" id="constructorStandings">
-        {Array.from({length: 10}).map((_, i) => (
+        {Array.from({length: 10}).map(() => (
           <div class="standings-row skeleton-row">
             <div class="skeleton sk-pos"></div>
             <div class="skeleton sk-name"></div>
-            <div class="skeleton sk-nat"></div>
             <div class="skeleton sk-pts"></div>
-            <div class="skeleton sk-wins"></div>
           </div>
         ))}
       </div>
@@ -41,49 +38,71 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 </BaseLayout>
 
 <script>
+  const OPENF1 = 'https://api.openf1.org/v1';
+
+  async function get<T>(url: string): Promise<T | null> {
+    try {
+      const res = await fetch(url);
+      return res.ok ? await res.json() : null;
+    } catch { return null; }
+  }
+
   async function loadTeams() {
-    const BASE = 'https://api.jolpi.ca/ergast/f1';
-    const res = await fetch(`${BASE}/current/constructorStandings.json?limit=20`).catch(() => null);
     const el = document.getElementById('constructorStandings');
     if (!el) return;
 
-    if (!res || !res.ok) {
+    const [standings, drivers] = await Promise.all([
+      get<any[]>(`${OPENF1}/championship_teams?session_key=latest`),
+      get<any[]>(`${OPENF1}/drivers?session_key=latest`),
+    ]);
+
+    if (!standings || !drivers) {
       el.innerHTML = '<p class="no-data">Could not load constructor standings.</p>';
       return;
     }
 
-    const data = await res.json();
-    const standings = data.MRData?.StandingsTable?.StandingsLists?.[0]?.ConstructorStandings ?? [];
+    // Build team_name → team_colour map from drivers (first driver per team)
+    const teamColors: Record<string, string> = {};
+    for (const d of drivers) {
+      if (d.team_name && d.team_colour && !teamColors[d.team_name]) {
+        teamColors[d.team_name] = `#${d.team_colour}`;
+      }
+    }
 
-    if (standings.length === 0) {
+    const sorted = standings
+      .filter((s: any) => s.position_current)
+      .sort((a: any, b: any) => a.position_current - b.position_current);
+
+    if (sorted.length === 0) {
       el.innerHTML = '<p class="no-data">Season standings not available yet.</p>';
       return;
     }
 
     el.innerHTML = `
       <div class="table-header">
-        <span class="th-pos">Pos</span>
-        <span class="th-team">Constructor</span>
-        <span class="th-nat">Nationality</span>
-        <span class="th-pts">Points</span>
-        <span class="th-wins">Wins</span>
+        <span>Pos</span>
+        <span>Constructor</span>
+        <span>Pts</span>
       </div>
-      ${standings.map((s: any, idx: number) => `
-        <div class="standings-row${idx === 0 ? ' row-leader' : ''}">
-          <span class="td-pos">${s.position}</span>
-          <span class="td-team">${s.Constructor.name}</span>
-          <span class="td-nat">${s.Constructor.nationality}</span>
-          <span class="td-pts">${s.points}</span>
-          <span class="td-wins">${s.wins}</span>
-        </div>
-      `).join('')}
+      ${sorted.map((s: any) => {
+        const color   = teamColors[s.team_name] ?? 'var(--color-border)';
+        const isFirst = s.position_current === 1;
+
+        return `
+          <div class="standings-row${isFirst ? ' row-leader' : ''}" style="border-left-color:${color}">
+            <span class="td-pos">${s.position_current}</span>
+            <span class="td-team">${s.team_name}</span>
+            <span class="td-pts">${s.points_current}</span>
+          </div>
+        `;
+      }).join('')}
     `;
   }
 
   loadTeams();
 </script>
 
-<style>
+<style is:global>
   .page-header {
     padding-block: 4rem 2rem;
     border-bottom: 1px solid var(--color-border);
@@ -128,7 +147,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .table-header {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
+    grid-template-columns: 3rem 1fr 6rem;
     padding: 0.5rem 1rem;
     font-family: var(--font-display);
     font-size: 0.7rem;
@@ -140,16 +159,17 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .standings-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
+    grid-template-columns: 3rem 1fr 6rem;
     align-items: center;
     padding: 1rem 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
-    transition: border-color 0.15s;
+    border-left-width: 3px;
+    transition: filter 0.15s;
   }
 
-  .standings-row:hover { border-color: var(--color-muted); }
-  .row-leader { border-left: 3px solid var(--color-accent); }
+  .standings-row:hover { filter: brightness(1.1); }
+  .row-leader .td-pos { color: var(--color-accent); }
 
   .td-pos {
     font-family: var(--font-display);
@@ -166,8 +186,6 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     letter-spacing: 0.04em;
   }
 
-  .td-nat { font-size: 0.85rem; color: var(--color-muted); }
-
   .td-pts {
     font-family: 'Inter', monospace;
     font-weight: 600;
@@ -175,19 +193,12 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
     text-align: right;
   }
 
-  .td-wins {
-    font-family: 'Inter', monospace;
-    font-size: 0.9rem;
-    color: var(--color-muted);
-    text-align: right;
-  }
-
   /* Skeleton */
   .skeleton-row {
     display: grid;
-    grid-template-columns: 3rem 1fr 1fr 6rem 5rem;
+    grid-template-columns: 3rem 1fr 6rem;
     gap: 0.75rem;
-    padding: 1rem 1rem;
+    padding: 1rem;
     background: var(--color-surface);
     border: 1px solid var(--color-border);
     align-items: center;
@@ -195,15 +206,7 @@ import BaseLayout from '../../layouts/BaseLayout.astro';
 
   .sk-pos  { width: 1.5rem; height: 1.4rem; }
   .sk-name { height: 1.4rem; }
-  .sk-nat  { height: 1rem; }
   .sk-pts  { height: 1.4rem; }
-  .sk-wins { height: 1rem; }
 
   .no-data { color: var(--color-muted); font-size: 0.85rem; padding: 1.5rem; }
-
-  @media (max-width: 640px) {
-    .table-header { display: none; }
-    .standings-row, .skeleton-row { grid-template-columns: 2.5rem 1fr 5rem; }
-    .td-nat, .td-wins, .sk-nat, .sk-wins { display: none; }
-  }
 </style>
