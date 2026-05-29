@@ -194,6 +194,7 @@ const fontFaceCSS = fonts.map(f => {
                   <td>
                     <div class="cars-row" style={`background: ${grad}`}>
                       <img src={u.carL} alt="left"  class="car-img" onerror="this.style.display='none'" />
+                      <img src={u.carF} alt="front" class="car-img" onerror="this.style.display='none'" />
                       <img src={u.carR} alt="right" class="car-img" onerror="this.style.display='none'" />
                     </div>
                   </td>
@@ -330,7 +331,7 @@ const fontFaceCSS = fonts.map(f => {
 </BaseLayout>
 
 <style is:global>
-  {/* injected via JS below for font-face */}
+  /* injected via JS below for font-face */
 </style>
 
 <style>
